@@ -1,7 +1,5 @@
 """Top-level model classes.
 
-Author:
-    Chris Chute (chute@stanford.edu)
 """
 
 import layers

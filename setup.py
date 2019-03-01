@@ -7,8 +7,6 @@ Usage:
 Pre-processing code adapted from:
     > https://github.com/HKUST-KnowComp/R-Net/blob/master/prepro.py
 
-Author:
-    Chris Chute (chute@stanford.edu)
 """
 
 import numpy as np

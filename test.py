@@ -7,8 +7,6 @@ Usage:
     > PATH is a path to a checkpoint (e.g., save/train/model-01/best.pth.tar)
     > NAME is a name to identify the test run
 
-Author:
-    Chris Chute (chute@stanford.edu)
 """
 
 import csv
