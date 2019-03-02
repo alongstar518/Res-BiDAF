@@ -134,10 +134,11 @@ class TransformerEncoderCell(nn.Module):
     def __init__(self, input_size, num_k, num_v, num_head, hidden_size, dropoutrate = 0.1):
         super(TransformerEncoderCell, self).__init__()
         self.self_attn = SelfAttention(input_size, num_k, num_v, num_head, dropoutrate)
+        self.feed_forward = FeedForward(input_size, hidden_size, input_size)
         self.layer_norm = nn.LayerNorm(input_size)
-        self.feed_forward = FeedForward(input_size, hidden_size, 2 * input_size)
 
     def forward(self, x, softmax_mask):
+        self.layer_norm.to(x.device)
         z = self.self_attn(x, softmax_mask)
         z = self.layer_norm(x + z)
         x = self.feed_forward(z)
@@ -151,9 +152,13 @@ class TransformerEncoder(nn.Module):
                                   for i in range(num_layer)
                                   ]
 
+        self.projection = nn.Linear(hidden_size, 2*hidden_size, bias=False)
+
     def forward(self, x, softmax_mask):
         for cell in self.transformer_cells:
             x = cell(x, softmax_mask)
+        #self.projection.to(x.device)
+        #x = self.projection(x)
         return x
 
 class SelfAttention(nn.Module):
@@ -186,28 +191,33 @@ class SelfAttention(nn.Module):
         :param x: input embeddings (batch, passage_length, embeddingsize)
         :return: attn: (batch, passage_length, embeddingsize)
         '''
-
+        self.linear_q.to(x.device)
+        self.linear_k.to(x.device)
+        self.linear_v.to(x.device)
+        self.fc.to(x.device)
         q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
         k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
         v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
 
-        x = torch.bmm(q,k.permute(2,1)) / self.temperature
-        x = x.masked_fill(self.softmax_mask, -int('inf'))
+        x = torch.bmm(q,k.permute(0,2,1)) / self.temperature
+       # x = x.masked_fill(softmax_mask, -float('inf'))
         x = self.softmax(x)
         x = self.dropout(x)
         x = torch.bmm(x, v)
+        x = self.fc(x)
         return x
 
 class FeedForward(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(FeedForward, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
+        self.fc1.to(x.device)
+        self.fc2.to(x.device)
         out = self.fc1(x)
-        out = self.relu(out)
+        out = F.relu(out)
         out = self.fc2(out)
         return out
 
@@ -295,6 +305,7 @@ class BiDAFOutput(nn.Module):
     """
     def __init__(self, hidden_size, drop_prob):
         super(BiDAFOutput, self).__init__()
+        '''
         self.att_linear_1 = nn.Linear(8 * hidden_size, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
@@ -305,6 +316,18 @@ class BiDAFOutput(nn.Module):
 
         self.att_linear_2 = nn.Linear(8 * hidden_size, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
+        '''
+        self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
+        self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
+
+        self.rnn = RNNEncoder(input_size=2 * hidden_size,
+                              hidden_size=hidden_size,
+                              num_layers=1,
+                              drop_prob=drop_prob)
+
+        self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
+        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
+
 
     def forward(self, att, mod, mask):
         # Shapes: (batch_size, seq_len, 1)
