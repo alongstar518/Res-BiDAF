@@ -36,6 +36,24 @@ class Embedding(nn.Module):
 
         return emb
 
+class EmbeddingTransformer(nn.Module):
+    """Embedding layer used by BiDAF Transfomer encoder, without the character-level component.
+
+    Args:
+        word_vectors (torch.Tensor): Pre-trained word vectors.
+        drop_prob (float): Probability of zero-ing out activations
+    """
+    def __init__(self, word_vectors, drop_prob = 0.1):
+        super(EmbeddingTransformer, self).__init__()
+        self.drop_prob = drop_prob
+        self.embed = nn.Embedding.from_pretrained(word_vectors)
+
+    def forward(self, x):
+        emb = self.embed(x)   # (batch_size, seq_len, embed_size)
+        #emb = F.dropout(emb, self.drop_prob, self.training)
+
+        return emb
+
 
 class HighwayEncoder(nn.Module):
     """Encode an input sequence using a highway network.
@@ -112,44 +130,86 @@ class RNNEncoder(nn.Module):
 
         return x
 
-class TransformerEncoder(nn.Module):
-    def __init__(self):
-        super(TransformerEncoder, self).__init__()
+class TransformerEncoderCell(nn.Module):
+    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, dropoutrate = 0.1):
+        super(TransformerEncoderCell, self).__init__()
+        self.self_attn = SelfAttention(input_size, num_k, num_v, num_head, dropoutrate)
+        self.layer_norm = nn.LayerNorm(input_size)
+        self.feed_forward = FeedForward(input_size, hidden_size, 2 * input_size)
 
-    def forward(self):
-        pass
+    def forward(self, x, softmax_mask):
+        z = self.self_attn(x, softmax_mask)
+        z = self.layer_norm(x + z)
+        x = self.feed_forward(z)
+        x = self.layer_norm(x + z)
+        return x
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
+        super(TransformerEncoder, self).__init__()
+        self.transformer_cells = [TransformerEncoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
+                                  for i in range(num_layer)
+                                  ]
+
+    def forward(self, x, softmax_mask):
+        for cell in self.transformer_cells:
+            x = cell(x, softmax_mask)
+        return x
 
 class SelfAttention(nn.Module):
-    def __init__(self, input_size, out_size,num_k, num_v,num_head, dropout = 0.1, softmax_mask):
+    def __init__(self, input_size,num_k, num_v,num_head, dropoutrate):
         '''
         SelfAttention layer initilization.
-        :param input_size: 2d tensor with size  (batch ,embedding)
-        :param out_size:
+        :param input_size: scalar,  embedding size.
+        :param out_size: scalar, final output size
         :param num_k: scalar, k size
         :param num_v:  scalar, v size
         :param dropout: dropout rate, scalar
         '''
-
+        super(SelfAttention,self).__init__()
         self.num_k = num_k
         self.num_v = num_v
         self.input_size = input_size
         self.num_head = num_head
-        self.softmax_mask = softmax_mask
 
-        self.linear_q = nn.Linear(input_size, num_head * num_k)
-        self.linear_k = nn. Linear(input_size, num_head * num_k)
-        self.linear_v = nn.Linear(input_size, num_head * num_v)
+        self.linear_q = nn.Linear(input_size, num_head * num_k, bias=False)
+        self.linear_k = nn. Linear(input_size, num_head * num_k, bias=False)
+        self.linear_v = nn.Linear(input_size, num_head * num_v, bias=False)
         self.temperature = math.sqrt(num_k)
         self.softmax = nn.Softmax(dim = 2)
+        self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
+        self.dropout = nn.Dropout(p=dropoutrate)
 
-    def forward(self, x):
+    def forward(self, x, softmax_mask):
         '''
         forward for self attention
-        :param x: input embeddings (batch, embeddingsize)
-        :return: attn: 2d tensor (batch, num_head num_v)
+        :param x: input embeddings (batch, passage_length, embeddingsize)
+        :return: attn: (batch, passage_length, embeddingsize)
         '''
 
+        q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
+        k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
+        v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
 
+        x = torch.bmm(q,k.permute(2,1)) / self.temperature
+        x = x.masked_fill(self.softmax_mask, -int('inf'))
+        x = self.softmax(x)
+        x = self.dropout(x)
+        x = torch.bmm(x, v)
+        return x
+
+class FeedForward(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(FeedForward, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
 
 
 class BiDAFAttention(nn.Module):
