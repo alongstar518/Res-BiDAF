@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from util import masked_softmax
-
+import math
 
 class Embedding(nn.Module):
     """Embedding layer used by BiDAF, without the character-level component.
@@ -111,6 +111,45 @@ class RNNEncoder(nn.Module):
         x = F.dropout(x, self.drop_prob, self.training)
 
         return x
+
+class TransformerEncoder(nn.Module):
+    def __init__(self):
+        super(TransformerEncoder, self).__init__()
+
+    def forward(self):
+        pass
+
+class SelfAttention(nn.Module):
+    def __init__(self, input_size, out_size,num_k, num_v,num_head, dropout = 0.1, softmax_mask):
+        '''
+        SelfAttention layer initilization.
+        :param input_size: 2d tensor with size  (batch ,embedding)
+        :param out_size:
+        :param num_k: scalar, k size
+        :param num_v:  scalar, v size
+        :param dropout: dropout rate, scalar
+        '''
+
+        self.num_k = num_k
+        self.num_v = num_v
+        self.input_size = input_size
+        self.num_head = num_head
+        self.softmax_mask = softmax_mask
+
+        self.linear_q = nn.Linear(input_size, num_head * num_k)
+        self.linear_k = nn. Linear(input_size, num_head * num_k)
+        self.linear_v = nn.Linear(input_size, num_head * num_v)
+        self.temperature = math.sqrt(num_k)
+        self.softmax = nn.Softmax(dim = 2)
+
+    def forward(self, x):
+        '''
+        forward for self attention
+        :param x: input embeddings (batch, embeddingsize)
+        :return: attn: 2d tensor (batch, num_head num_v)
+        '''
+
+
 
 
 class BiDAFAttention(nn.Module):
