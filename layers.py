@@ -138,7 +138,6 @@ class TransformerEncoderCell(nn.Module):
         self.layer_norm = nn.LayerNorm(input_size)
 
     def forward(self, x, softmax_mask):
-        self.layer_norm.to(x.device)
         z = self.self_attn(x, softmax_mask)
         z = self.layer_norm(x + z)
         x = self.feed_forward(z)
@@ -148,18 +147,16 @@ class TransformerEncoderCell(nn.Module):
 class TransformerEncoder(nn.Module):
     def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
         super(TransformerEncoder, self).__init__()
-        self.transformer_cells = [TransformerEncoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
-                                  for i in range(num_layer)
-                                  ]
+        self.transformer_cells = nn.ModuleList([TransformerEncoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
+                                  for _ in range(num_layer)])
 
-        self.projection = nn.Linear(hidden_size, 2*hidden_size, bias=False)
+        #self.projection = nn.Linear(hidden_size, 2*hidden_size, bias=False)
 
     def forward(self, x, mask):
         l_q = x.size(1)
         attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
         for cell in self.transformer_cells:
             x = cell(x, attn_mask)
-        #self.projection.to(x.device)
         #x = self.projection(x)
         #mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
         #x *= mask
@@ -195,10 +192,6 @@ class SelfAttention(nn.Module):
         :param x: input embeddings (batch, passage_length, embeddingsize)
         :return: attn: (batch, passage_length, embeddingsize)
         '''
-        self.linear_q.to(x.device)
-        self.linear_k.to(x.device)
-        self.linear_v.to(x.device)
-        self.fc.to(x.device)
         q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
         k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
         v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
@@ -218,8 +211,6 @@ class FeedForward(nn.Module):
         self.fc2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        self.fc1.to(x.device)
-        self.fc2.to(x.device)
         out = self.fc1(x)
         out = F.relu(out)
         out = self.fc2(out)
