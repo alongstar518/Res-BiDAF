@@ -55,10 +55,19 @@ class BiDAF(nn.Module):
         self.att = layers.BiDAFAttention(hidden_size=hidden_size,
                                          drop_prob=drop_prob)
 
-        self.mod = layers.RNNEncoder(input_size=4 * word_vectors.size(-1),
-                                     hidden_size=hidden_size,
-                                     num_layers=2,
-                                     drop_prob=drop_prob)
+        #self.mod = layers.RNNEncoder(input_size=4 * word_vectors.size(-1),
+        #                            hidden_size=hidden_size,
+        #                             num_layers=2,
+        #                             drop_prob=drop_prob)
+
+        self.mod = layers.TransformerEncoder(input_size=4 * word_vectors.size(-1),
+                                             num_k=64,
+                                             num_v=64,
+                                             num_head=8,
+                                             num_layer=6,
+                                             hidden_size=hidden_size,
+                                             dropoutrate=drop_prob
+                                             )
 
         #self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
         #                             hidden_size=hidden_size,
@@ -77,19 +86,21 @@ class BiDAF(nn.Module):
         #c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
         #q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
 
-        c_emb = self.emb_trans(cw_idxs)
-        q_emb = self.emb_trans(qw_idxs)
+        c_emb = self.emb_trans(cw_idxs)   # (batch_size, c_len, embedding_size)
+        q_emb = self.emb_trans(qw_idxs)   # (batch_size, q_len, embedding_size)
 
         #c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         #q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
-        c_enc = self.enc_trans(c_emb,c_mask)
-        q_enc = self.enc_trans(q_emb,q_mask)
+        c_enc = self.enc_trans(c_emb,c_mask) #(batch_size, c_len, embedding_size)
+        q_enc = self.enc_trans(q_emb,q_mask) #(batch_size, c_len, embedding_size)
 
         att = self.att(c_enc, q_enc,
-                       c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+                       c_mask, q_mask)    # (batch_size, c_len, 4 * embedding size)
 
-        mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
+        #mod = self.mod(att, c_len)       # (batch_size, c_len, 2 * hidden_size)
+
+        mod = self.mod(att, None)               # (batch_size, c_len, 4* embedding_size
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
