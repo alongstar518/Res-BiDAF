@@ -309,15 +309,15 @@ class BiDAFOutput(nn.Module):
         super(BiDAFOutput, self).__init__()
 
         self.att_linear_1 = nn.Linear(4 * 300, 1)
-        self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
+        self.mod_linear_1 = nn.Linear(4 * 300, 1)
 
-        self.rnn = RNNEncoder(input_size=2 * hidden_size,
+        self.rnn = RNNEncoder(input_size=4 * 300,
                               hidden_size=hidden_size,
                               num_layers=1,
                               drop_prob=drop_prob)
 
         self.att_linear_2 = nn.Linear(4 * 300, 1)
-        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
+        self.mod_linear_2 = nn.Linear(4 * 300, 1)
         '''
         self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
