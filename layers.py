@@ -154,11 +154,15 @@ class TransformerEncoder(nn.Module):
 
         self.projection = nn.Linear(hidden_size, 2*hidden_size, bias=False)
 
-    def forward(self, x, softmax_mask):
+    def forward(self, x, mask):
+        l_q = x.size(1)
+        attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
         for cell in self.transformer_cells:
-            x = cell(x, softmax_mask)
+            x = cell(x, attn_mask)
         #self.projection.to(x.device)
         #x = self.projection(x)
+        mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
+        x *= mask
         return x
 
 class SelfAttention(nn.Module):
@@ -200,8 +204,7 @@ class SelfAttention(nn.Module):
         v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
 
         x = torch.bmm(q,k.transpose(1,2)) / self.temperature
-        #softmax_mask = softmax_mask.unsqueeze(-1).expand(-1, -1, x.size(-1))
-        #x = x.data.masked_fill_((1-softmax_mask).byte(), -float('inf'))
+        x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
         x = self.softmax(x)
         x = self.dropout(x)
         x = torch.bmm(x, v)
