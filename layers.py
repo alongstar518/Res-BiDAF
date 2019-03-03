@@ -96,7 +96,7 @@ class RNNEncoder(nn.Module):
         num_layers (int): Number of layers of RNN cells to use.
         drop_prob (float): Probability of zero-ing out activations.
     """
-    def __init__(self,
+    def  __init__(self,
                  input_size,
                  hidden_size,
                  num_layers,
@@ -235,9 +235,12 @@ class BiDAFAttention(nn.Module):
     def __init__(self, hidden_size, drop_prob=0.1):
         super(BiDAFAttention, self).__init__()
         self.drop_prob = drop_prob
-        self.c_weight = nn.Parameter(torch.zeros(hidden_size, 1))
-        self.q_weight = nn.Parameter(torch.zeros(hidden_size, 1))
-        self.cq_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
+        #self.c_weight = nn.Parameter(torch.zeros(hidden_size, 1))
+        #self.q_weight = nn.Parameter(torch.zeros(hidden_size, 1))
+        self.c_weight = nn.Parameter(torch.zeros(300, 1))
+        self.q_weight = nn.Parameter(torch.zeros(300, 1))
+        #self.cq_weight = nn.Parameter(torch.zeros(1, 1, hidden_size))
+        self.cq_weight = nn.Parameter(torch.zeros(1, 1, 300))
         for weight in (self.c_weight, self.q_weight, self.cq_weight):
             nn.init.xavier_uniform_(weight)
         self.bias = nn.Parameter(torch.zeros(1))
@@ -300,8 +303,8 @@ class BiDAFOutput(nn.Module):
     """
     def __init__(self, hidden_size, drop_prob):
         super(BiDAFOutput, self).__init__()
-        '''
-        self.att_linear_1 = nn.Linear(8 * hidden_size, 1)
+
+        self.att_linear_1 = nn.Linear(4 * 300, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
         self.rnn = RNNEncoder(input_size=2 * hidden_size,
@@ -309,7 +312,7 @@ class BiDAFOutput(nn.Module):
                               num_layers=1,
                               drop_prob=drop_prob)
 
-        self.att_linear_2 = nn.Linear(8 * hidden_size, 1)
+        self.att_linear_2 = nn.Linear(4 * 300, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
         '''
         self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
@@ -322,7 +325,7 @@ class BiDAFOutput(nn.Module):
 
         self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
-
+        '''
 
     def forward(self, att, mod, mask):
         # Shapes: (batch_size, seq_len, 1)

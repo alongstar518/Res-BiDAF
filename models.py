@@ -40,10 +40,10 @@ class BiDAF(nn.Module):
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-        self.enc_trans = layers.TransformerEncoder(input_size=hidden_size,
+        self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1),
                                                    num_k=64,
                                                    num_v=64,
-                                                   num_head=10,
+                                                   num_head=8,
                                                    num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
@@ -55,15 +55,15 @@ class BiDAF(nn.Module):
         self.att = layers.BiDAFAttention(hidden_size=hidden_size,
                                          drop_prob=drop_prob)
 
-        #self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
-        #                             hidden_size=hidden_size,
-        #                             num_layers=2,
-        #                             drop_prob=drop_prob)
-
-        self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
+        self.mod = layers.RNNEncoder(input_size=4 * word_vectors.size(-1),
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
+
+        #self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
+        #                             hidden_size=hidden_size,
+        #                             num_layers=2,
+        #                             drop_prob=drop_prob)
 
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
@@ -74,11 +74,11 @@ class BiDAF(nn.Module):
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
 
-        c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
-        q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
+        #c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
+        #q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
 
-        #c_emb = self.emb_trans(cw_idxs)
-        #q_emb = self.emb_trans(qw_idxs)
+        c_emb = self.emb_trans(cw_idxs)
+        q_emb = self.emb_trans(qw_idxs)
 
         #c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         #q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
