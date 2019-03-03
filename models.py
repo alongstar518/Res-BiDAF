@@ -60,10 +60,19 @@ class BiDAF(nn.Module):
         #                             num_layers=2,
         #                             drop_prob=drop_prob)
 
-        self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
-                                     hidden_size=hidden_size,
-                                     num_layers=2,
-                                     drop_prob=drop_prob)
+        #self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
+        #                             hidden_size=hidden_size,
+        #                             num_layers=2,
+        #                             drop_prob=drop_prob)
+
+        self.mod = layers.TransformerEncoder(input_size=4 * hidden_size,
+                                             num_k=64,
+                                             num_v=64,
+                                             num_head=10,
+                                             num_layer=6,
+                                             hidden_size=hidden_size,
+                                             dropoutrate=drop_prob
+                                             )
 
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
@@ -87,9 +96,10 @@ class BiDAF(nn.Module):
         q_enc = self.enc_trans(q_emb,q_mask)
 
         att = self.att(c_enc, q_enc,
-                       c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+                       c_mask, q_mask)    # (batch_size, c_len, 4 * hidden_size)
 
-        mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
+        #mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
+        mod = self.mod(att, None)
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 

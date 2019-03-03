@@ -154,7 +154,7 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, x, mask):
         l_q = x.size(1)
-        attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
+        attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1) if mask is not None else None
         for cell in self.transformer_cells:
             x = cell(x, attn_mask)
         #x = self.projection(x)
@@ -197,7 +197,8 @@ class SelfAttention(nn.Module):
         v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
 
         x = torch.bmm(q,k.transpose(1,2)) / self.temperature
-        x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
+        if softmax_mask is not None:
+            x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
         x = self.softmax(x)
         x = self.dropout(x)
         x = torch.bmm(x, v)
@@ -313,7 +314,7 @@ class BiDAFOutput(nn.Module):
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
         '''
         self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
-        self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
+        self.mod_linear_1 = nn.Linear(4 * hidden_size, 1)
 
         self.rnn = RNNEncoder(input_size=2 * hidden_size,
                               hidden_size=hidden_size,
@@ -321,7 +322,7 @@ class BiDAFOutput(nn.Module):
                               drop_prob=drop_prob)
 
         self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
-        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
+        self.mod_linear_2 = nn.Linear(4 * hidden_size, 1)
 
 
     def forward(self, att, mod, mask):
