@@ -204,7 +204,7 @@ class SelfAttention(nn.Module):
         v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
 
         x = torch.bmm(q,k.transpose(1,2)) / self.temperature
-        x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
+        #x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
         x = self.softmax(x)
         x = self.dropout(x)
         x = torch.bmm(x, v)
