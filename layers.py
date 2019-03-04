@@ -317,7 +317,7 @@ class BiDAFOutput(nn.Module):
                               drop_prob=drop_prob)
 
         self.att_linear_2 = nn.Linear(4 * 300, 1)
-        self.mod_linear_2 = nn.Linear(4 * 300, 1)
+        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
         '''
         self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
