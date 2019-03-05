@@ -42,10 +42,30 @@ def main(args):
     log.info('Loading embeddings...')
     word_vectors = util.torch_from_json(args.word_emb_file)
 
+    # Get data loader
+    log.info('Building dataset...')
+    train_dataset = SQuAD(args.train_record_file, args.use_squad_v2)
+    train_loader = data.DataLoader(train_dataset,
+                                   batch_size=args.batch_size,
+                                   shuffle=True,
+                                   num_workers=args.num_workers,
+                                   collate_fn=collate_fn)
+    dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2)
+    dev_loader = data.DataLoader(dev_dataset,
+                                 batch_size=args.batch_size,
+                                 shuffle=False,
+                                 num_workers=args.num_workers,
+                                 collate_fn=collate_fn)
+
+    max_p_lenth = max(train_loader.dataset.context_idxs.size(1), train_loader.dataset.question_idxs.size(1))
+    max_q_lenth = max(dev_loader.dataset.context_idxs.size(1), dev_loader.dataset.question_idxs.size(1))
+
     # Get model
     log.info('Building model...')
     model = BiDAF(word_vectors=word_vectors,
                   hidden_size=args.hidden_size,
+                  max_p_length=max_p_lenth,
+                  max_q_length=max_q_lenth,
                   drop_prob=args.drop_prob)
     model = nn.DataParallel(model, args.gpu_ids)
     if args.load_path:
@@ -68,21 +88,6 @@ def main(args):
     optimizer = optim.Adadelta(model.parameters(), args.lr,
                                weight_decay=args.l2_wd)
     scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
-
-    # Get data loader
-    log.info('Building dataset...')
-    train_dataset = SQuAD(args.train_record_file, args.use_squad_v2)
-    train_loader = data.DataLoader(train_dataset,
-                                   batch_size=args.batch_size,
-                                   shuffle=True,
-                                   num_workers=args.num_workers,
-                                   collate_fn=collate_fn)
-    dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2)
-    dev_loader = data.DataLoader(dev_dataset,
-                                 batch_size=args.batch_size,
-                                 shuffle=False,
-                                 num_workers=args.num_workers,
-                                 collate_fn=collate_fn)
 
     # Train
     log.info('Training...')
