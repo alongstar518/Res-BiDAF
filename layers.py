@@ -144,6 +144,7 @@ class TransformerEncoderCell(nn.Module):
         x = self.layer_norm(x + z)
         return x
 
+
 class PositionalEncoder(nn.Module):
     def __init__(self, d_model, max_seq_len=80):
         super().__init__()
@@ -161,6 +162,15 @@ class PositionalEncoder(nn.Module):
 
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        # make embeddings relatively larger
+        x = x * math.sqrt(self.d_model)
+        # add constant to embedding
+        seq_len = x.size(1)
+        x = x + torch.autograd.Variable(self.pe[:, :seq_len], \
+                         requires_grad=False).cuda()
+        return x
 
 class TransformerEncoder(nn.Module):
     def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
