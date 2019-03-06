@@ -58,9 +58,6 @@ class BiDAF(nn.Module):
                                                    )
 
 
-        #self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
-        #                                 drop_prob=drop_prob)
-
         self.att = layers.BiDAFAttention(hidden_size=hidden_size,
                                          drop_prob=drop_prob)
 
@@ -69,40 +66,24 @@ class BiDAF(nn.Module):
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
-        #self.mod = layers.RNNEncoder(input_size=4 * hidden_size,
-        #                             hidden_size=hidden_size,
-        #                             num_layers=2,
-        #                             drop_prob=drop_prob)
-
         self.pe_p = layers.PositionalEncoder(word_vectors.size(-1), max_p_len)
         self.pe_q = layers.PositionalEncoder(word_vectors.size(-1), max_q_len)
-        self.out = layers.BiDAFOutput(hidden_size=word_vectors.size(-1),q_length=max_q_len,
+        self.out = layers.BiDAFOutput(hidden_size=word_vectors.size(-1),q_length=max_p_len,
                                       drop_prob=drop_prob)
 
     def forward(self, cw_idxs, qw_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs #(batch, max p length)
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs #(batch, max_q_length)
-        c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
-
-        #c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
-        #q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
 
         c_emb = self.emb_trans(cw_idxs) #(batch, max p length, embedding)
         q_emb = self.emb_trans(qw_idxs) #(batch, max q length, embedding)
 
-        #c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
-        #q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
         c_emb = self.pe_p(c_emb)  # same as c_enc
         q_emb = self.pe_q(q_emb)  # same as q_enc
         c_enc = self.enc_trans(c_emb,c_mask)  #same as c_emb
         q_enc = self.enc_trans(q_emb,q_mask) # same as q_emb
-        dec_out = self.dec_trans(q_emb, c_enc, c_mask, q_mask) # same as q_enc
+        dec_out = self.dec_trans(c_emb, q_enc, q_mask, c_mask) # same as q_enc
 
-        #att = self.att(c_enc, q_enc,
-                       #c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
-
-        #mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
-        out = self.out(q_enc, dec_out,c_enc,c_mask)  # 2 tensors, each (batch_size, c_len)
-                #, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
+        out = self.out(c_enc, dec_out,c_enc,c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
