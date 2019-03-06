@@ -386,28 +386,7 @@ class BiDAFOutput(nn.Module):
     """
     def __init__(self, hidden_size, q_length, drop_prob):
         super(BiDAFOutput, self).__init__()
-        '''
-        self.att_linear_1 = nn.Linear(4 * 300, 1)
-        self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
-        self.rnn = RNNEncoder(input_size=2 * hidden_size,
-                              hidden_size=hidden_size,
-                              num_layers=1,
-                              drop_prob=drop_prob)
-
-        self.att_linear_2 = nn.Linear(4 * 300, 1)
-        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
-        '''
-        self.att_linear_1 = nn.Linear(4 * hidden_size, 1)
-        self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
-
-        self.rnn = RNNEncoder(input_size=2 * hidden_size,
-                              hidden_size=hidden_size,
-                              num_layers=1,
-                              drop_prob=drop_prob)
-
-        self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
-        self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
         self.attn_s = BiLinearAttention(hidden_size,hidden_size)
         self.attn_e = BiLinearAttention(hidden_size,hidden_size)
         self.fc_s = nn.Linear(q_length,1)
@@ -417,7 +396,7 @@ class BiDAFOutput(nn.Module):
         # Shapes: (batch_size, seq_len, 1)
         att1 = self.attn_s(enc_p,enc_q)
         att2 = self.attn_e(enc_p,dec_out)
-
+        att2 += att1
         logist1 = self.fc_s(att1)
         logist2 = self.fc_e(att2)
         # Shapes: (batch_size, seq_len)
