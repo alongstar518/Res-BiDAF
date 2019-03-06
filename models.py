@@ -127,6 +127,6 @@ class BiDAF(nn.Module):
         e_enc = self.enc_trans_e(h_dec, q_mask) #(b, q, e)
         e_dec = self.dec_trans_e(h_enc, e_enc, q_mask, c_mask) #(b,c,e)
 
-        out = self.out(s_dec,e_dec, s_enc, e_enc,c_mask)  # 2 tensors, each (batch_size, c_len)
+        out = self.out(s_dec,e_dec, q_emb, q_emb,c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
