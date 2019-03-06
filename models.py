@@ -44,7 +44,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -52,7 +52,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -61,7 +61,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -79,7 +79,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -88,7 +88,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -99,7 +99,7 @@ class BiDAF(nn.Module):
 
         self.mod = layers.RNNEncoder(input_size=4 * word_vectors.size(-1),
                                      hidden_size=hidden_size,
-                                     num_layers=2,
+                                     num_layers=1,
                                      drop_prob=drop_prob)
 
         self.pe_p = layers.PositionalEncoder(word_vectors.size(-1), max_p_len)
@@ -118,15 +118,18 @@ class BiDAF(nn.Module):
         q_emb = self.pe_q(q_emb)  # same as q_enc
         #c_enc = self.enc_trans(c_emb,c_mask)  #same as c_emb
 
-        s_enc = self.enc_trans_s(q_emb,q_mask) # same as q_emb (b, q, e)
-        s_dec = self.dec_trans_s(c_emb, s_enc, q_mask, c_mask) #(b, c, e)
+        s_enc, _ = self.enc_trans_s(q_emb,q_mask) # same as q_emb (b, q, e)
+        s_dec, _, s_de_attn = self.dec_trans_s(c_emb, s_enc, q_mask, c_mask) #(b, c, e)
 
-        h_enc = self.enc_trans_h(s_dec, c_mask) #(b, c, e)
-        h_dec = self.dec_trans_e(q_emb, h_enc, c_mask, q_mask) #(b, q, e)
+        #h_enc, _ = self.enc_trans_h(s_dec, c_mask) #(b, c, e)
+        #h_dec, _, h_de_attn = self.dec_trans_e(q_emb, h_enc, c_mask, q_mask) #(b, q, e)
 
-        e_enc = self.enc_trans_e(h_dec, q_mask) #(b, q, e)
-        e_dec = self.dec_trans_e(c_emb, e_enc, q_mask, c_mask) #(b,c,e)
+        #e_enc, _ = self.enc_trans_e(h_dec, q_mask) #(b, q, e)
+        #e_dec, _, e_de_attn = self.dec_trans_e(c_emb, e_enc, q_mask, c_mask) #(b,c,e)
 
-        out = self.out(s_dec,e_dec, q_emb, q_emb,c_mask)  # 2 tensors, each (batch_size, c_len)
+        e_enc, _ = self.enc_trans_e(q_emb, q_mask) #(b, q, e)
+        e_dec, _, e_de_attn = self.dec_trans_e(s_dec, e_enc, q_mask, c_mask) #(b,c,e)
+
+        out = self.out(s_dec,e_dec,q_emb,c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
