@@ -122,7 +122,7 @@ class BiDAF(nn.Module):
         s_dec = self.dec_trans_s(c_emb, s_enc, q_mask, c_mask) #(b, c, e)
 
         h_enc = self.enc_trans_h(s_dec, c_mask) #(b, c, e)
-        h_dec = self.dec_trans_e(s_enc, h_enc, c_mask, q_mask) #(b, q, e)
+        h_dec = self.dec_trans_e(q_emb, h_enc, c_mask, q_mask) #(b, q, e)
 
         e_enc = self.enc_trans_e(h_dec, q_mask) #(b, q, e)
         e_dec = self.dec_trans_e(h_enc, e_enc, q_mask, c_mask) #(b,c,e)
