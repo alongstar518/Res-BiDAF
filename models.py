@@ -48,6 +48,15 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
+        self.dec_trans = layers.TransformerDecoder(input_size=word_vectors.size(-1),
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
 
         #self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
         #                                 drop_prob=drop_prob)
@@ -86,13 +95,14 @@ class BiDAF(nn.Module):
         c_emb = self.pe_p(c_emb)
         q_emb = self.pe_q(q_emb)
         c_enc = self.enc_trans(c_emb,c_mask)
-        q_enc = self.enc_trans(q_emb,q_mask)
+        dec_out = self.dec_trans(q_emb, c_enc, c_mask, q_mask)
 
-        att = self.att(c_enc, q_enc,
-                       c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+        #att = self.att(c_enc, q_enc,
+                       #c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
-        mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
+        #mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
-        out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
+        out = self.out(dec_out, c_mask)  # 2 tensors, each (batch_size, c_len)
+                #, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out

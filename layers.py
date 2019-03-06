@@ -163,11 +163,13 @@ class TransformerEncoderCell(nn.Module):
         self.feed_forward = FeedForward(input_size, hidden_size, input_size)
         self.layer_norm = nn.LayerNorm(input_size)
 
-    def forward(self, x, softmax_mask):
-        z = self.self_attn(x, softmax_mask)
+    def forward(self, x, mask, attention_mask):
+        z = self.self_attn(x,x,x, attention_mask)
+        z *= mask
         z = self.layer_norm(x + z)
         x = self.feed_forward(z)
         x = self.layer_norm(x + z)
+        x *= mask
         return x
 
 class TransformerEncoder(nn.Module):
@@ -181,11 +183,30 @@ class TransformerEncoder(nn.Module):
     def forward(self, x, mask):
         l_q = x.size(1)
         attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
+        mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
         for cell in self.transformer_cells:
-            x = cell(x, attn_mask)
-        #x = self.projection(x)
-        #mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
-        #x *= mask
+            x = cell(x, mask,attn_mask)
+        return x
+
+class TransformerDecoder(nn.Module):
+    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
+        self.transformer_cells = nn.ModuleList([DecoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
+                                  for _ in range(num_layer)])
+
+    def forward(self, dec_input, enc_output, p_mask, q_mask):
+        padding_mask = q_mask.type(torch.float).unsqueeze(-1)
+        l_q = dec_input.size(1)
+        sz_b, len_s, _ = dec_input.size()
+        subsequent_mask = torch.triu(
+            torch.ones((len_s, len_s), device=p_mask.device, dtype=torch.uint8), diagonal=1)
+        subsequent_mask = subsequent_mask.unsqueeze(0).expand(sz_b, -1, -1)  # b x ls x ls
+        attn_mask = (1-q_mask).unsqueeze(1).expand(-1, l_q, -1)
+        att_mask = (attn_mask + subsequent_mask).gt(0)
+        l_q = dec_input.size(1)
+        dec_enc_attn_mask = (1 - p_mask).unsqueeze(1).expand(-1, l_q, -1)
+
+        for cell in self.transformer_cells:
+            x = cell(dec_input,enc_output, padding_mask,att_mask, dec_enc_attn_mask)
         return x
 
 class SelfAttention(nn.Module):
@@ -212,15 +233,15 @@ class SelfAttention(nn.Module):
         self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
         self.dropout = nn.Dropout(p=dropoutrate)
 
-    def forward(self, x, softmax_mask):
+    def forward(self, q, k, v, softmax_mask):
         '''
         forward for self attention
         :param x: input embeddings (batch, passage_length, embeddingsize)
         :return: attn: (batch, passage_length, embeddingsize)
         '''
-        q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
-        k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
-        v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
+        q = self.linear_q(q) # (batch, passage_length, num_head * num_k)
+        k = self.linear_k(k) # (batch, passage_length, num_head * num_k)
+        v = self.linear_v(v) # (batch, passage_length, num_head * num_v)
 
         x = torch.bmm(q,k.transpose(1,2)) / self.temperature
         x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
@@ -241,6 +262,26 @@ class FeedForward(nn.Module):
         out = F.relu(out)
         out = self.fc2(out)
         return out
+
+class DecoderCell(nn.Module):
+    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, dropoutrate = 0.1):
+        super(DecoderCell, self).__init__()
+        self.self_attn = SelfAttention(input_size, num_k, num_v, num_head, dropoutrate = dropoutrate)
+        self.encoder_attn = SelfAttention(input_size, num_k, num_v, num_head, dropoutrate = dropoutrate)
+        self.feed_forward = FeedForward(input_size, hidden_size, input_size)
+
+    def forward(self, dec_input, enc_output, mask, self_att_mask, dec_enc_mask):
+        dec_out = self.self_attn(dec_input, dec_input, dec_input, self_att_mask)
+        dec_out *= mask
+
+        dec_out = self.encoder_attn(dec_out, enc_output, enc_output, dec_enc_mask)
+        dec_out *= mask
+
+        dec_out = self.feed_forward(dec_out)
+        dec_out *= mask
+
+        return dec_out
+
 
 
 class BiDAFAttention(nn.Module):
@@ -329,7 +370,7 @@ class BiDAFOutput(nn.Module):
     """
     def __init__(self, hidden_size, drop_prob):
         super(BiDAFOutput, self).__init__()
-
+        '''
         self.att_linear_1 = nn.Linear(4 * 300, 1)
         self.mod_linear_1 = nn.Linear(2 * hidden_size, 1)
 
@@ -351,7 +392,7 @@ class BiDAFOutput(nn.Module):
 
         self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
-        '''
+
 
     def forward(self, att, mod, mask):
         # Shapes: (batch_size, seq_len, 1)
