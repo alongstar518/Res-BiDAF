@@ -58,7 +58,7 @@ def main(args):
                                  #collate_fn=collate_fn)
 
     max_p_lenth = max(train_loader.dataset.context_idxs.size(1), train_loader.dataset.question_idxs.size(1))
-    max_q_lenth = max(dev_loader.dataset.context_idxs.size(1), dev_loader.dataset.question_idxs.size(1))
+    max_q_lenth = max(dev_loader.dataset.question_idxs.size(1), dev_loader.dataset.question_idxs.size(1))
 
     # Get model
     log.info('Building model...')

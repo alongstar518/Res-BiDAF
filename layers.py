@@ -190,6 +190,7 @@ class TransformerEncoder(nn.Module):
 
 class TransformerDecoder(nn.Module):
     def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
+        super(TransformerDecoder, self).__init__()
         self.transformer_cells = nn.ModuleList([DecoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
                                   for _ in range(num_layer)])
 
@@ -354,6 +355,21 @@ class BiDAFAttention(nn.Module):
 
         return s
 
+class BiLinearAttention(nn.Module):
+    def __init__(self, input_feature, output_feature):
+        super(BiLinearAttention, self).__init__()
+        self.linear = nn.Linear(input_feature, output_feature)
+
+    def forward(self, p, q):
+        '''
+
+        :param p: batch, sentense_lengh_p, embedding
+        :param q: batch, sentense_lengh_q, embedding
+        :return: batch, sentense_length_p, sentense_length_q)
+        '''
+        attn = torch.bmm(F.relu(self.linear(p)),q.transpose(1,2))  #(batch, sentense_length_p, sentense_length_q)
+
+        return attn
 
 class BiDAFOutput(nn.Module):
     """Output layer used by BiDAF for question answering.
@@ -368,7 +384,7 @@ class BiDAFOutput(nn.Module):
         hidden_size (int): Hidden size used in the BiDAF model.
         drop_prob (float): Probability of zero-ing out activations.
     """
-    def __init__(self, hidden_size, drop_prob):
+    def __init__(self, hidden_size, q_length, drop_prob):
         super(BiDAFOutput, self).__init__()
         '''
         self.att_linear_1 = nn.Linear(4 * 300, 1)
@@ -392,16 +408,20 @@ class BiDAFOutput(nn.Module):
 
         self.att_linear_2 = nn.Linear(4 * hidden_size, 1)
         self.mod_linear_2 = nn.Linear(2 * hidden_size, 1)
+        self.attn_s = BiLinearAttention(hidden_size,hidden_size)
+        self.attn_e = BiLinearAttention(hidden_size,hidden_size)
+        self.fc_s = nn.Linear(q_length,1)
+        self.fc_e = nn.Linear(q_length,1)
 
-
-    def forward(self, att, mod, mask):
+    def forward(self, dec_out, enc_p, p_mask):
         # Shapes: (batch_size, seq_len, 1)
-        logits_1 = self.att_linear_1(att) + self.mod_linear_1(mod)
-        mod_2 = self.rnn(mod, mask.sum(-1))
-        logits_2 = self.att_linear_2(att) + self.mod_linear_2(mod_2)
+        att1 = self.attn_s(enc_p,dec_out)
+        att2 = self.attn_e(enc_p,dec_out)
 
+        logist1 = self.fc_s(att1)
+        logist2 = self.fc_e(att2)
         # Shapes: (batch_size, seq_len)
-        log_p1 = masked_softmax(logits_1.squeeze(), mask, log_softmax=True)
-        log_p2 = masked_softmax(logits_2.squeeze(), mask, log_softmax=True)
+        log_p1 = masked_softmax(logist1.squeeze(), p_mask, log_softmax=True)
+        log_p2 = masked_softmax(logist2.squeeze(), p_mask, log_softmax=True)
 
         return log_p1, log_p2
