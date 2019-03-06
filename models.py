@@ -40,7 +40,7 @@ class BiDAF(nn.Module):
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-        self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1),
+        self.enc_trans_s = layers.TransformerEncoder(input_size=word_vectors.size(-1),
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
@@ -48,7 +48,43 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
-        self.dec_trans = layers.TransformerDecoder(input_size=word_vectors.size(-1),
+        self.dec_trans_s = layers.TransformerDecoder(input_size=word_vectors.size(-1),
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
+        self.enc_trans_h = layers.TransformerEncoder(input_size=word_vectors.size(-1),
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
+        self.dec_trans_h = layers.TransformerDecoder(input_size=word_vectors.size(-1),
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
+        self.enc_trans_e = layers.TransformerEncoder(input_size=word_vectors.size(-1),
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
+        self.dec_trans_e = layers.TransformerDecoder(input_size=word_vectors.size(-1),
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
@@ -80,10 +116,17 @@ class BiDAF(nn.Module):
 
         c_emb = self.pe_p(c_emb)  # same as c_enc
         q_emb = self.pe_q(q_emb)  # same as q_enc
-        c_enc = self.enc_trans(c_emb,c_mask)  #same as c_emb
-        q_enc = self.enc_trans(q_emb,q_mask) # same as q_emb
-        dec_out = self.dec_trans(c_emb, q_enc, q_mask, c_mask) # same as q_enc
+        #c_enc = self.enc_trans(c_emb,c_mask)  #same as c_emb
 
-        out = self.out(c_enc, dec_out,c_enc,c_mask)  # 2 tensors, each (batch_size, c_len)
+        s_enc = self.enc_trans_s(q_emb,q_mask) # same as q_emb (b, q, e)
+        s_dec = self.dec_trans_s(c_emb, s_enc, q_mask, c_mask) #(b, c, e)
+
+        h_enc = self.enc_trans_h(s_dec, c_mask) #(b, c, e)
+        h_dec = self.dec_trans_e(s_enc, h_enc, c_mask, q_mask) #(b, q, e)
+
+        e_enc = self.enc_trans_e(h_dec, q_mask) #(b, q, e)
+        e_dec = self.dec_trans_e(c_emb, e_enc, q_mask, c_mask) #(b,c,e)
+
+        out = self.out(s_dec,e_dec,c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out

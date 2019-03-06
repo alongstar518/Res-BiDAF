@@ -387,18 +387,18 @@ class BiDAFOutput(nn.Module):
     def __init__(self, hidden_size, q_length, drop_prob):
         super(BiDAFOutput, self).__init__()
 
-        self.attn_s = BiLinearAttention(hidden_size,hidden_size)
-        self.attn_e = BiLinearAttention(hidden_size,hidden_size)
-        self.fc_s = nn.Linear(q_length,1)
-        self.fc_e = nn.Linear(q_length,1)
+        #self.attn_s = BiLinearAttention(hidden_size,hidden_size)
+        #self.attn_e = BiLinearAttention(hidden_size,hidden_size)
+        self.fc_s = nn.Linear(hidden_size,1)
+        self.fc_e = nn.Linear(hidden_size,1)
 
-    def forward(self, enc_q, dec_out, enc_p, p_mask):
+    def forward(self, dec_s, dec_e, p_mask):
         # Shapes: (batch_size, seq_len, 1)
-        att1 = self.attn_s(enc_q,enc_p)
-        att2 = self.attn_e(enc_q,dec_out)
-        att2 += att1
-        logist1 = self.fc_s(att1)
-        logist2 = self.fc_e(att2)
+        #att1 = self.attn_s(enc_q,enc_p)
+        #att2 = self.attn_e(enc_q,dec_out)
+        #att2 += att1
+        logist1 = self.fc_s(dec_s)
+        logist2 = self.fc_e(dec_e)
         # Shapes: (batch_size, seq_len)
         log_p1 = masked_softmax(logist1.squeeze(), p_mask, log_softmax=True)
         log_p2 = masked_softmax(logist2.squeeze(), p_mask, log_softmax=True)
