@@ -80,29 +80,28 @@ class BiDAF(nn.Module):
                                       drop_prob=drop_prob)
 
     def forward(self, cw_idxs, qw_idxs):
-        c_mask = torch.zeros_like(cw_idxs) != cw_idxs
-        q_mask = torch.zeros_like(qw_idxs) != qw_idxs
+        c_mask = torch.zeros_like(cw_idxs) != cw_idxs #(batch, max p length)
+        q_mask = torch.zeros_like(qw_idxs) != qw_idxs #(batch, max_q_length)
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
 
         #c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
         #q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
 
-        c_emb = self.emb_trans(cw_idxs)
-        q_emb = self.emb_trans(qw_idxs)
+        c_emb = self.emb_trans(cw_idxs) #(batch, max p length, embedding)
+        q_emb = self.emb_trans(qw_idxs) #(batch, max q length, embedding)
 
         #c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         #q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
-        c_emb = self.pe_p(c_emb)
-        q_emb = self.pe_q(q_emb)
-        c_enc = self.enc_trans(c_emb,c_mask)
-        q_enc = self.enc_trans(q_emb,q_mask)
-        dec_out = self.dec_trans(q_emb, c_enc, c_mask, q_mask)
+        c_emb = self.pe_p(c_emb)  # same as c_enc
+        q_emb = self.pe_q(q_emb)  # same as q_enc
+        c_enc = self.enc_trans(c_emb,c_mask)  #same as c_emb
+        q_enc = self.enc_trans(q_emb,q_mask) # same as q_emb
+        dec_out = self.dec_trans(q_emb, c_enc, c_mask, q_mask) # same as q_enc
 
         #att = self.att(c_enc, q_enc,
                        #c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
         #mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
-
         out = self.out(dec_out, c_enc,c_mask)  # 2 tensors, each (batch_size, c_len)
                 #, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 

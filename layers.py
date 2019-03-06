@@ -413,9 +413,9 @@ class BiDAFOutput(nn.Module):
         self.fc_s = nn.Linear(q_length,1)
         self.fc_e = nn.Linear(q_length,1)
 
-    def forward(self, dec_out, enc_p, p_mask):
+    def forward(self, enc_q, dec_out, enc_p, p_mask):
         # Shapes: (batch_size, seq_len, 1)
-        att1 = self.attn_s(enc_p,dec_out)
+        att1 = self.attn_s(enc_p,enc_q)
         att2 = self.attn_e(enc_p,dec_out)
 
         logist1 = self.fc_s(att1)
