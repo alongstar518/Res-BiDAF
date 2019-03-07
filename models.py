@@ -44,7 +44,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=3,
+                                                   num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -52,7 +52,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=3,
+                                                   num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -61,7 +61,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=3,
+                                                   num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -79,7 +79,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=3,
+                                                   num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -88,7 +88,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=3,
+                                                   num_layer=6,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )

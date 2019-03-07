@@ -60,6 +60,9 @@ def main(args):
     max_p_lenth = max(train_loader.dataset.context_idxs.size(1), train_loader.dataset.question_idxs.size(1))
     max_q_lenth = max(dev_loader.dataset.question_idxs.size(1), dev_loader.dataset.question_idxs.size(1))
 
+    max_p_lenth = 401
+    max_q_lenth = 51
+
     # Get model
     log.info('Building model...')
     model = BiDAF(word_vectors=word_vectors,
