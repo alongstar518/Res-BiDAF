@@ -294,49 +294,6 @@ class ScaledDotProductAttention(nn.Module):
 
         return output, attn
 
-class SelfAttention(nn.Module):
-    def __init__(self, input_size,num_k, num_v,num_head, dropoutrate):
-        '''
-        SelfAttention layer initilization.
-        :param input_size: scalar,  embedding size.
-        :param out_size: scalar, final output size
-        :param num_k: scalar, k size
-        :param num_v:  scalar, v size
-        :param dropout: dropout rate, scalar
-        '''
-        super(SelfAttention,self).__init__()
-        self.num_k = num_k
-        self.num_v = num_v
-        self.input_size = input_size
-        self.num_head = num_head
-
-        self.linear_q = nn.Linear(input_size, num_head * num_k, bias=False)
-        self.linear_k = nn. Linear(input_size, num_head * num_k, bias=False)
-        self.linear_v = nn.Linear(input_size, num_head * num_v, bias=False)
-        self.temperature = math.sqrt(num_k)
-        self.softmax = nn.Softmax(dim = 2)
-        self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
-        self.dropout = nn.Dropout(p=dropoutrate)
-
-    def forward(self, q, k, v, softmax_mask):
-        '''
-        forward for self attention
-        :param x: input embeddings (batch, passage_length, embeddingsize)
-        :return: attn: (batch, passage_length, embeddingsize)
-        '''
-        q = self.linear_q(q) # (batch, passage_length, num_head * num_k)
-        k = self.linear_k(k) # (batch, passage_length, num_head * num_k)
-        v = self.linear_v(v) # (batch, passage_length, num_head * num_v)
-
-        x = torch.bmm(q,k.transpose(1,2)) / self.temperature
-        x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
-        x = self.softmax(x)
-        x = self.dropout(x)
-        x = torch.bmm(x, v)
-        attn = x
-        x = self.fc(x)
-        return x, attn
-
 class FeedForward(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(FeedForward, self).__init__()
@@ -469,11 +426,12 @@ class BiDAFOutput(nn.Module):
         hidden_size (int): Hidden size used in the BiDAF model.
         drop_prob (float): Probability of zero-ing out activations.
     """
-    def __init__(self, hidden_size, q_length, drop_prob):
+    def __init__(self, hidden_size, q_length, drop_prob=0.2):
         super(BiDAFOutput, self).__init__()
 
         self.attn_s = BiLinearAttention(hidden_size,hidden_size)
         self.attn_e = BiLinearAttention(hidden_size,hidden_size)
+        self.drop_out = nn.Dropout(drop_prob)
         self.fc_s = nn.Linear(hidden_size,1)
         self.fc_e = nn.Linear(hidden_size,1)
 
@@ -495,6 +453,10 @@ class BiDAFOutput(nn.Module):
         #dec_e = torch.max(dec_e, 0)[0]
         lg1 = self.fc_s(dec_start)
         lg2 = self.fc_e(dec_end)
+        lg1 = F.relu(lg1)
+        lg1 = self.drop_out(lg1)
+        lg2 = F.relu(lg2)
+        lg2 = self.drop_out(lg2)
         #lg1 = dec_s.sum(dec_s, -1)
         #lg2 = dec_e.sum(dec_e, -1)
         # Shapes: (batch_size, seq_len)
