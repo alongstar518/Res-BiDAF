@@ -1,0 +1,1 @@
+python train.py --train_record_file ./data/train.npz -n squad22 --eval_steps 50000 --lr 0.05 --batch_size=64 --use_squad_v2=True --num_epochs=-1 #--load_path "/home/zheng/transferlearning/best.pth.tar"
