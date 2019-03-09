@@ -1,6 +1,7 @@
 import math
 import re
 import sys
+import pickle
 import numpy as np
 
 """
@@ -8,9 +9,8 @@ TFIDF Class for CS224N Winter 2019
 Author: Matt Linker
 
 Reference: All code shown here was written by the author. A few lines are modified from assignment work in
-CS124, Winter 2018. Credit for concepts used in get_unique_words to the CS124 teaching
-team. The rest of the functions I either had to write entirely from scratch or were so dissimilar as to be
-similar in workload to doing so. While called tf-idf, this implementation ultimately just uses idf as a
+CS124, Winter 2018. Credit for concepts used in get_unique_words to the CS124 teaching team. The rest of 
+the functions I wrote from scratch. While called tf-idf, this implementation ultimately just uses idf as a
 proxy for word rarity and term-matching.
 
 Usage:
@@ -21,6 +21,8 @@ Usage:
 	-normalized_additive_idf_ignore_common_words returns the mean idf value, ignoring words that are common across docs
 	-min_idf returns the minimum idf value over the query
 	-max_idf returns the maximum idf value over the query
+4. To cut down on pre-process (lengthy) redundancy, save pre-processed values using save_to_pickle. They can
+later be populated into a new (empty) TFIDF object using get_from_pickle.
 
 
 Note: Running step 2 is a time-consuming process. I recommend either a. outputting data to a pickle file and
@@ -30,11 +32,12 @@ data both times).
 
 class TFIDF:
 
-	def __init__(self, docs):
+	def __init__(self, docs=[]):
 		""" 
 		Initialize TF-IDF class.
 		@param docs: List of strings. Each string is a doc in training set
-		Might need to massage data a bit to fit in here
+		Might need to massage data a bit to fit in here. Use empty doc if 
+		reloading from pickle.
 		"""
 		self.vocab = []
 		self.docs = docs
@@ -162,3 +165,31 @@ class TFIDF:
 			if test_score < score:
 				score = test_score
 		return score
+
+	def save_to_pickle(self):
+		"""
+		Saves the given IDF score table and word index lookup map to a pickle file. Useful so
+		we don't need to recompute every time. NOTE: This function cannot be called until AFTER
+		you have called prepare_data on the dataset. You should not need to call this more than
+		once overall, since the training dataset only needs to be computed once, then we can
+		save_to_pickle and access whenever we need to.
+		"""
+		with open('./data/word2Ind.pickle', 'wb') as handle:
+			pickle.dump(self.word2Ind, handle, protocol=pickle.HIGHEST_PROTOCOL)
+		with open('./data/idf_score.pickle', 'wb') as handle:
+			pickle.dump(self.idf_score, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+	def get_from_pickle(self):
+		"""
+		Retrieves an IDF score table and word index lookup map from a call to save_to_pickle.
+		To use, generate a new "empty" TFIDF object, then call on it with no data. NOTE: This
+		function will need a previous call to save_to_pickle to work, and additionally will
+		NOT populate any fields other than the two shown below. This means that once you load, 
+		the only safe functions to use are those where you get scores (step 3 in the instructions).
+		"""
+		with open('./data/word2Ind.pickle', 'rb') as handle:
+			self.word2Ind = pickle.load(handle)
+		with open('./data/idf_score.pickle', 'rb') as handle:
+			self.idf_score = pickle.load(handle)
+
+
