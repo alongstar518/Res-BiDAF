@@ -44,7 +44,7 @@ class BiDAF(nn.Module):
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
-                                                   num_layer=6,
+                                                   num_layer=3,
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
@@ -64,7 +64,7 @@ class BiDAF(nn.Module):
                                              num_k=64,
                                              num_v=64,
                                              num_head=8,
-                                             num_layer=6,
+                                             num_layer=3,
                                              hidden_size=hidden_size,
                                              dropoutrate=drop_prob
                                              )
@@ -96,15 +96,15 @@ class BiDAF(nn.Module):
         #q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
         c_emb = self.pe_p(c_emb)
         q_emb = self.pe_p(q_emb)
-        c_enc = self.enc_trans(c_emb,c_mask) #(batch_size, c_len, embedding_size)
-        q_enc = self.enc_trans(q_emb,q_mask) #(batch_size, c_len, embedding_size)
+        c_enc, _ = self.enc_trans(c_emb,c_mask) #(batch_size, c_len, embedding_size)
+        q_enc, _ = self.enc_trans(q_emb,q_mask) #(batch_size, c_len, embedding_size)
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 4 * embedding size)
 
         #mod = self.mod(att, c_len)       # (batch_size, c_len, 2 * hidden_size)
 
-        mod = self.mod(att, None)               # (batch_size, c_len, 4* embedding_size
+        mod,_ = self.mod(att, c_mask)               # (batch_size, c_len, 4* embedding_size
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 

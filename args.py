@@ -235,7 +235,7 @@ def add_train_test_args(parser):
                         help='Number of features in encoder hidden layers.')
     parser.add_argument('--num_visuals',
                         type=int,
-                        default=10,
+                        default=50,
                         help='Number of examples to visualize in TensorBoard.')
     parser.add_argument('--load_path',
                         type=str,
