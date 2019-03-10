@@ -32,10 +32,6 @@ class CharEmbedding(nn.Module):
 '''
 class CharEmbedding(nn.Module):
 
-    """
-    CNN module
-    """
-
     def __init__(self, char_vocab_size,char_embedding_size, word_embedding_size,kernel_size=5):
         super(CharEmbedding, self).__init__()
         self.embedding = nn.Embedding(char_vocab_size, char_embedding_size, padding_idx=0)
@@ -81,7 +77,7 @@ class Embedding(nn.Module):
         self.proj = nn.Linear(word_vectors.size(1), hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
         #self.char_embedding = CharEmbedding(char_vocab_size, char_embedding_size, channel_size, channel_width,drop_prob)
-        self.char_embedding = CharEmbedding(char_vocab_size,char_embedding_size, word_embedding_size, kernel_size)
+        self.char_embedding = CharEmbedding(char_vocab_size,char_embedding_size, char_embedding_size, kernel_size)
         self.drop_out = nn.Dropout(self.drop_prob)
 
     def forward(self, w, c):
