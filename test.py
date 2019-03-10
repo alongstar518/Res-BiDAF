@@ -39,17 +39,6 @@ def main(args):
     log.info('Loading embeddings...')
     word_vectors = util.torch_from_json(args.word_emb_file)
 
-    # Get model
-    log.info('Building model...')
-    model = BiDAF(word_vectors=word_vectors,
-                  char_vocab_size= 1309,
-                  hidden_size=args.hidden_size)
-    model = nn.DataParallel(model, gpu_ids)
-    log.info('Loading checkpoint from {}...'.format(args.load_path))
-    model = util.load_model(model, args.load_path, gpu_ids, return_step=False)
-    model = model.to(device)
-    model.eval()
-
     # Get data loader
     log.info('Building dataset...')
     record_file = vars(args)['{}_record_file'.format(args.split)]
@@ -59,6 +48,17 @@ def main(args):
                                   shuffle=False,
                                   num_workers=args.num_workers,
                                   collate_fn=collate_fn)
+
+    # Get model
+    log.info('Building model...')
+    model = BiDAF(word_vectors=word_vectors,
+                  char_vocab_size= 1376,
+                  hidden_size=args.hidden_size)
+    model = nn.DataParallel(model, gpu_ids)
+    log.info('Loading checkpoint from {}...'.format(args.load_path))
+    model = util.load_model(model, args.load_path, gpu_ids, return_step=False)
+    model = model.to(device)
+    model.eval()
 
     # Evaluate
     log.info('Evaluating on {} split...'.format(args.split))
@@ -77,7 +77,7 @@ def main(args):
             batch_size = cw_idxs.size(0)
 
             # Forward
-            log_p1, log_p2 = model(cw_idxs, qw_idxs)
+            log_p1, log_p2 = model(cw_idxs, qw_idxs, cc_idxs,qc_idxs)
             y1, y2 = y1.to(device), y2.to(device)
             loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
             nll_meter.update(loss.item(), batch_size)
