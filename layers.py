@@ -51,8 +51,8 @@ class CharEmbedding(nn.Module):
         :return: word embedding vectors for sentense. (Batches_size*sentense_length, word_embedding_size)
         """
         batch_size = x.size(0)
-        max_word_lenth = x.size(1)
-        max_sent_lenth = x.size(2)
+        max_word_lenth = x.size(2)
+        max_sent_lenth = x.size(1)
         x = x.contiguous().view(max_sent_lenth*batch_size, max_word_lenth)
         x = self.embedding(x)
         #x = self.drop_out(x)
