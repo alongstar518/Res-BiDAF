@@ -8,28 +8,7 @@ import torch.nn.functional as F
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from util import masked_softmax
-'''
-class CharEmbedding(nn.Module):
-    def __init__(self, char_vocab_size, char_embedding_size, channel_size, channel_width, drop_out_rate):
-        super(CharEmbedding, self).__init__()
-        self.char_emb = nn.Embedding(char_vocab_size, char_embedding_size, padding_idx=0)
-        self.char_vocab_size = char_vocab_size
-        self.char_embedding_size = char_embedding_size
-        self.channel_size = channel_size
-        self.channel_width = channel_width
-        self.char_conv = nn.Conv2d(1, channel_size, (char_embedding_size, channel_width))
-        self.dropout = nn.Dropout(drop_out_rate)
 
-    def forward(self, x):
-        batch_size = x.size(0)
-        x = self.dropout(self.char_emb(x))
-        x = x.view(-1, self.char_embedding_size, x.size(2)).unsqueeze(1)
-        x = self.char_conv(x).squeeze()
-        x = F.max_pool1d(x, x.size(2)).squeeze()
-        x = x.view(batch_size, -1, self.channel_size)
-
-        return x
-'''
 class CharEmbedding(nn.Module):
 
     def __init__(self, char_vocab_size,char_embedding_size, word_embedding_size,kernel_size=5):
@@ -43,7 +22,7 @@ class CharEmbedding(nn.Module):
     def forward(self, x):
         """
 
-        :param input: (Batch_size * Sentense_lenth, char_embedding_size, max_word_length)
+        :param input: (Batch_size , Sentense_lenth, max_char_length)
         :return: word embedding vectors for sentense. (Batches_size*sentense_length, word_embedding_size)
         """
         batch_size = x.size(0)
