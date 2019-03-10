@@ -50,16 +50,17 @@ class CharEmbedding(nn.Module):
         :param input: (Batch_size * Sentense_lenth, char_embedding_size, max_word_length)
         :return: word embedding vectors for sentense. (Batches_size*sentense_length, word_embedding_size)
         """
-        x = x.permute(1,0,2)
-        batch_size = x.size(1)
-        max_word_lenth = x.size(2)
-        max_sent_lenth = x.size(0)
+        batch_size = x.size(0)
+        max_word_lenth = x.size(1)
+        max_sent_lenth = x.size(2)
         x = x.contiguous().view(max_sent_lenth*batch_size, max_word_lenth)
         x = self.embedding(x)
         #x = self.drop_out(x)
+        x = x.permute(0,2,1)
         conv = self.cov1d_layer(x)
         relu = F.relu(conv)
         out = torch.max(relu, dim=2)[0]
+        out = out.contiguous().view(batch_size, max_sent_lenth, self.word_embedding_size)
         return out
 
 class Embedding(nn.Module):
