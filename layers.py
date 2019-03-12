@@ -229,7 +229,7 @@ class BiDAFOutput(nn.Module):
 
         self.rnn = RNNEncoder(input_size=2 * hidden_size,
                               hidden_size=hidden_size,
-                              num_layers=1,
+                              num_layers=2,
                               drop_prob=drop_prob)
 
         self.att_linear_2 = nn.Linear(8 * hidden_size, 1)
