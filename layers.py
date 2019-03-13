@@ -181,14 +181,6 @@ class SelfAttention(nn.Module):
         self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
         self.dropout = nn.Dropout(p=dropoutrate)
 
-    def forward(self, x):
-        # make embeddings relatively larger
-        x = x * math.sqrt(self.d_model)
-        # add constant to embedding
-        seq_len = x.size(1)
-        x = x + torch.autograd.Variable(self.pe[:, :seq_len], requires_grad=False).to(x.device)
-        return x
-
     def forward(self, x, softmax_mask):
         '''
         forward for self attention
