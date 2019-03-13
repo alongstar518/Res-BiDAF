@@ -38,8 +38,8 @@ class BiDAF(nn.Module):
                                     drop_prob=drop_prob)
 
         self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
-                                                   num_k=128,
-                                                   num_v=128,
+                                                   num_k=64,
+                                                   num_v=64,
                                                    num_head=8,
                                                    num_layer=6,
                                                    hidden_size=hidden_size,
@@ -79,8 +79,8 @@ class BiDAF(nn.Module):
         c_enc = self.enc_trans(c_emb, c_mask)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc_trans(q_emb, q_mask)    # (batch_size, q_len, 2 * hidden_size)
 
-        c_enc = self.enc(c_emb, c_len)
-        q_enc = self.enc(q_emb, q_len)
+        c_enc = self.enc(c_enc, c_len)
+        q_enc = self.enc(q_enc, q_len)
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
