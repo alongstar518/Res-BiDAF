@@ -143,8 +143,6 @@ class TransformerEncoder(nn.Module):
         self.transformer_cells = nn.ModuleList([TransformerEncoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
                                   for _ in range(num_layer)])
 
-        #self.projection = nn.Linear(hidden_size, 2*hidden_size, bias=False)
-
     def forward(self, x, mask):
         l_q = x.size(1)
         if mask is not None:
@@ -153,8 +151,8 @@ class TransformerEncoder(nn.Module):
             attn_mask = None
         for cell in self.transformer_cells:
             x = cell(x, attn_mask)
-        #mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
-        #x *= mask
+        mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
+        x *= mask
         return x
 
 class SelfAttention(nn.Module):
