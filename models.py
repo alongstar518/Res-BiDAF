@@ -45,7 +45,7 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
-
+        '''
         self.enc_trans2 = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
                                                    num_k=64,
                                                    num_v=64,
@@ -54,7 +54,7 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
-
+        '''
         self.enc = layers.RNNEncoder(input_size=2 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
@@ -68,7 +68,7 @@ class BiDAF(nn.Module):
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
-        self.mod2 = layers.RNNEncoder(input_size=2 * (word_vectors.size(-1) + 100),
+        self.mod2 = layers.RNNEncoder(input_size=word_vectors.size(-1) + 100,
                                      hidden_size=hidden_size,
                                      num_layers=2,
                                      drop_prob=drop_prob)
@@ -98,10 +98,10 @@ class BiDAF(nn.Module):
 
         trans = self.pe_p(mod)
 
-        trans1 = self.enc_trans1(trans, c_mask)    # (batch_size, c_len, 2 * hidden_size)
-        trans2 = self.enc_trans2(trans, c_mask)    # (batch_size, q_len, 2 * hidden_size)
+        trans = self.enc_trans1(trans, c_mask)    # (batch_size, c_len, 2 * hidden_size)
+        #trans2 = self.enc_trans2(trans, c_mask)    # (batch_size, q_len, 2 * hidden_size)
 
-        trans = torch.cat([trans1,trans2] , -1)
+        #trans = torch.cat([trans1,trans2] , -1)
 
         mod = self.mod2(trans, c_len)
 
