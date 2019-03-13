@@ -45,12 +45,12 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
-        '''
+
         self.enc = layers.RNNEncoder(input_size=2 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-        '''
+
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
@@ -62,8 +62,8 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-        self.pe_p = layers.PositionalEncoder(word_vectors.size(-1), max_seq_len=max_p_length)
-        self.pe_q = layers.PositionalEncoder(word_vectors.size(-1), max_seq_len=max_q_length)
+        self.pe_p = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_p_length)
+        self.pe_q = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_q_length)
 
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
@@ -78,6 +78,9 @@ class BiDAF(nn.Module):
 
         c_enc = self.enc_trans(c_emb, None)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc_trans(q_emb, None)    # (batch_size, q_len, 2 * hidden_size)
+
+        c_enc = self.enc(c_enc, c_len)
+        q_enc = self.enc(q_enc, q_len)
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
