@@ -102,10 +102,12 @@ class TransformerEncoderCell(nn.Module):
         self.feed_forward = FeedForward(input_size, hidden_size, input_size)
         self.layer_norm = nn.LayerNorm(input_size)
 
-    def forward(self, x, softmax_mask):
+    def forward(self, x, softmax_mask, padding_mask):
         z = self.self_attn(x, softmax_mask)
         z = self.layer_norm(x + z)
+        z *= padding_mask
         x = self.feed_forward(z)
+        x *= padding_mask
         x = self.layer_norm(x + z)
         return x
 
@@ -149,11 +151,10 @@ class TransformerEncoder(nn.Module):
             attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
         else:
             attn_mask = None
-        for cell in self.transformer_cells:
-            x = cell(x, attn_mask)
         if mask is not None:
             mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
-            x *= mask
+        for cell in self.transformer_cells:
+            x = cell(x, attn_mask, mask)
         return x
 
 class SelfAttention(nn.Module):
