@@ -62,8 +62,8 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-        self.pe_p = layers.PositionalEncoder(word_vectors.size(-1), max_seq_len=max_p_length)
-        self.pe_q = layers.PositionalEncoder(word_vectors.size(-1), max_seq_len=max_q_length)
+        self.pe_p = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_p_length)
+        self.pe_q = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_q_length)
 
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
