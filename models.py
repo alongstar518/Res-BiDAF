@@ -37,7 +37,16 @@ class BiDAF(nn.Module):
                                     kernel_size=5,
                                     drop_prob=drop_prob)
 
-        self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
+        self.enc_trans1 = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
+                                                   num_k=64,
+                                                   num_v=64,
+                                                   num_head=8,
+                                                   num_layer=6,
+                                                   hidden_size=hidden_size,
+                                                   dropoutrate=drop_prob
+                                                   )
+
+        self.enc_trans2 = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
                                                    num_k=64,
                                                    num_v=64,
                                                    num_head=8,
@@ -59,6 +68,11 @@ class BiDAF(nn.Module):
                                      num_layers=2,
                                      drop_prob=drop_prob)
 
+        self.mod2 = layers.RNNEncoder(input_size=2 * (word_vectors.size(-1) + 100),
+                                     hidden_size=hidden_size,
+                                     num_layers=2,
+                                     drop_prob=drop_prob)
+
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
@@ -73,19 +87,23 @@ class BiDAF(nn.Module):
         c_emb = self.emb(cw_idxs, cw_char_idx)         # (batch_size, c_len, hidden_size)
         q_emb = self.emb(qw_idxs, qw_char_idxs)         # (batch_size, q_len, hidden_size)
 
-        c_emb = self.pe_p(c_emb)
-        q_emb = self.pe_p(q_emb)
 
-        c_enc = self.enc_trans(c_emb, c_mask)    # (batch_size, c_len, 2 * hidden_size)
-        q_enc = self.enc_trans(q_emb, q_mask)    # (batch_size, q_len, 2 * hidden_size)
-
-        c_enc = self.enc(c_enc, c_len)
-        q_enc = self.enc(q_enc, q_len)
+        c_enc = self.enc(c_emb, c_len)
+        q_enc = self.enc(q_emb, q_len)
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
+
+        trans = self.pe_p(mod)
+
+        trans1 = self.enc_trans1(trans, c_mask)    # (batch_size, c_len, 2 * hidden_size)
+        trans2 = self.enc_trans2(trans, c_mask)    # (batch_size, q_len, 2 * hidden_size)
+
+        trans = torch.cat([trans1,trans2] , -1)
+
+        mod = self.mod2(trans, c_len)
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
