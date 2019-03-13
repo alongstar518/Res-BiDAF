@@ -76,11 +76,11 @@ class BiDAF(nn.Module):
         c_emb = self.pe_p(c_emb)
         q_emb = self.pe_p(q_emb)
 
-        c_enc = self.enc_trans(c_emb, None)    # (batch_size, c_len, 2 * hidden_size)
-        q_enc = self.enc_trans(q_emb, None)    # (batch_size, q_len, 2 * hidden_size)
+        c_enc = self.enc_trans(c_emb, c_mask)    # (batch_size, c_len, 2 * hidden_size)
+        q_enc = self.enc_trans(q_emb, q_mask)    # (batch_size, q_len, 2 * hidden_size)
 
-        c_enc = self.enc(c_enc, c_len)
-        q_enc = self.enc(q_enc, q_len)
+        c_enc = self.enc(c_emb, c_len)
+        q_enc = self.enc(q_emb, q_len)
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
