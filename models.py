@@ -38,8 +38,8 @@ class BiDAF(nn.Module):
                                     drop_prob=drop_prob)
 
         self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
-                                                   num_k=64,
-                                                   num_v=64,
+                                                   num_k=32,
+                                                   num_v=32,
                                                    num_head=1,
                                                    num_layer=1,
                                                    hidden_size=hidden_size,
