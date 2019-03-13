@@ -57,12 +57,15 @@ def main(args):
                                  num_workers=args.num_workers,
                                  collate_fn=collate_fn)
     char_vocab_size = max(torch.max(train_dataset.context_char_idxs), torch.max(train_dataset.question_char_idxs)).item() + 1
-
+    max_p_lenth = max(train_loader.dataset.context_idxs.size(1), train_loader.dataset.question_idxs.size(1))
+    max_q_lenth = max(dev_loader.dataset.context_idxs.size(1), dev_loader.dataset.question_idxs.size(1))
     # Get model
     log.info('Building model...')
     model = BiDAF(word_vectors=word_vectors,
                   char_vocab_size= char_vocab_size,
                   hidden_size=args.hidden_size,
+                  max_p_length= max_p_lenth,
+                  max_q_length= max_q_lenth,
                   drop_prob=args.drop_prob)
     model = nn.DataParallel(model, args.gpu_ids)
     if args.load_path:
