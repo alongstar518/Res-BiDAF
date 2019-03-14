@@ -68,6 +68,8 @@ class BiDAF(nn.Module):
         self.pe_p = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_p_length)
         self.pe_q = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_q_length)
 
+        self.relu = nn.ReLU()
+
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
@@ -81,11 +83,11 @@ class BiDAF(nn.Module):
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
-        mod2 = self.pe_p(mod)
+        mod2 = self.pe_p(att)
 
         mod2 = self.enc_trans(mod2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
 
-        mod = self.highway(mod2 + mod)
+        mod = self.highway(mod + mod2)
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
