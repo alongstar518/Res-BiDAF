@@ -87,6 +87,6 @@ class BiDAF(nn.Module):
 
         mod = self.highway(mod2 + mod)
 
-        out = self.out(att, mod + mod, c_mask)  # 2 tensors, each (batch_size, c_len)
+        out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out

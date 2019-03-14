@@ -130,9 +130,7 @@ class TransformerEncoderCell(nn.Module):
 
     def forward(self, x, mask):
         z = self.self_attn(x, mask)
-        z = self.layer_norm(x + z)
         x = self.feed_forward(z)
-        x = self.layer_norm(x + z)
         return x
 
 class FeedForward(nn.Module):
@@ -248,6 +246,7 @@ class SelfAttention(nn.Module):
         x = x.permute(1, 2, 0, 3).contiguous().view(batch, l, -1)
         x = self.fc(x)
         x = self.dropout(x)
+        x = self.layer_norm(x)
         return x
 
 class RNNEncoder(nn.Module):
