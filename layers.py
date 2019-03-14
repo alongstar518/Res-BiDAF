@@ -108,9 +108,9 @@ class Highway(nn.Module):
     """
     def __init__(self, num_layers, hidden_size):
         super().__init__()
-        self.transforms = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+        self.transforms = nn.ModuleList([nn.Linear(hidden_size * 4, hidden_size * 4)
                                          for _ in range(num_layers)])
-        self.gates = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+        self.gates = nn.ModuleList([nn.Linear(hidden_size * 4, hidden_size * 4)
                                     for _ in range(num_layers)])
 
     def forward(self, x):
