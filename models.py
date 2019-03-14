@@ -42,8 +42,11 @@ class BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
-        self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
+        self.att1 = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
+
+        self.att2 = layers.BiDAFAttention(hidden_size=2*hidden_size,
+                                          drop_prob=drop_prob)
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
@@ -52,6 +55,8 @@ class BiDAF(nn.Module):
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
+
+        self.highway = layers.Highway(1, hidden_size)
 
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
@@ -64,8 +69,13 @@ class BiDAF(nn.Module):
         c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
-        att = self.att(c_enc, q_enc,
+        att1 = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+
+        att2 = self.att(c_enc, q_enc,
+                        c_mask, q_mask)
+
+        att = att1 + self.highway(att2)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 

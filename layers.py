@@ -94,6 +94,34 @@ class HighwayEncoder(nn.Module):
             x = g * t + (1 - g) * x
         return x
 
+class Highway(nn.Module):
+    """Encode an input sequence using a highway network.
+
+    Based on the paper:
+    "Highway Networks"
+    by Rupesh Kumar Srivastava, Klaus Greff, Jürgen Schmidhuber
+    (https://arxiv.org/abs/1505.00387).
+
+    Args:
+        num_layers (int): Number of layers in the highway encoder.
+        hidden_size (int): Size of hidden activations.
+    """
+    def __init__(self, num_layers, hidden_size):
+        super().__init__()
+        self.transforms = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+                                         for _ in range(num_layers)])
+        self.gates = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+                                    for _ in range(num_layers)])
+
+    def forward(self, x):
+        for gate, transform in zip(self.gates, self.transforms):
+            # Shapes of g, t, and x are all (batch_size, seq_len, hidden_size)
+            g = torch.sigmoid(gate(x))
+            t = F.relu(transform(x))
+            x = g * t + (1 - g) * x
+        return x
+
+
 class RNNEncoder(nn.Module):
     """General-purpose layer for encoding a sequence using a bidirectional RNN.
 
