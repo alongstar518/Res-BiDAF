@@ -128,9 +128,10 @@ class TransformerEncoderCell(nn.Module):
         self.feed_forward = FeedForward(input_size, hidden_size, input_size)
         self.layer_norm = nn.LayerNorm(input_size)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, padding_mask):
         z = self.self_attn(x, mask)
         x = self.feed_forward(z)
+        x *= mask
         return x
 
 class FeedForward(nn.Module):
@@ -177,16 +178,15 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, x, mask):
         l_q = x.size(1)
-        emb_size = x.size(-1)
+
         if mask is not None:
-            mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
+            attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
         else:
-            mask = None
-        for cell in self.transformer_cells:
-            x = cell(x, None)
+            attn_mask = None
         if mask is not None:
-            mask = mask.float().unsqueeze(-1).expand(-1, -1, emb_size)
-            x *= mask
+            mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
+        for cell in self.transformer_cells:
+            x = cell(x, attn_mask, mask)
         return x
 
 class SelfAttention(nn.Module):
@@ -237,6 +237,7 @@ class SelfAttention(nn.Module):
 
         x = torch.bmm(q,k.transpose(1,2)) / self.temperature
         if mask is not None:
+            mask = mask.repeat(self.num_head,1,1)
             x = x.data.masked_fill_(mask.byte(), -float('inf'))
 
         x = self.softmax(x)
@@ -247,7 +248,7 @@ class SelfAttention(nn.Module):
         x = x.permute(1, 2, 0, 3).contiguous().view(batch, l, -1)
         x = self.fc(x)
         x = self.dropout(x)
-        x = self.layer_norm(x)
+        x = self.layer_norm(x+res)
         return x
 
 class RNNEncoder(nn.Module):
