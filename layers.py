@@ -131,7 +131,7 @@ class TransformerEncoderCell(nn.Module):
     def forward(self, x, mask, padding_mask):
         z = self.self_attn(x, mask)
         x = self.feed_forward(z)
-        x *= mask
+        x *= padding_mask
         return x
 
 class FeedForward(nn.Module):
