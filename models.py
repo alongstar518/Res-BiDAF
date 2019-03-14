@@ -45,12 +45,12 @@ class BiDAF(nn.Module):
                                                    hidden_size=hidden_size,
                                                    dropoutrate=drop_prob
                                                    )
-        '''
+
         self.enc = layers.RNNEncoder(input_size=2 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-        '''
+
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
@@ -61,6 +61,8 @@ class BiDAF(nn.Module):
 
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
+
+        self.highway = layers.Highway(1, hidden_size)
 
         self.pe_p = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_p_length)
         self.pe_q = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_q_length)
@@ -73,17 +75,17 @@ class BiDAF(nn.Module):
         c_emb = self.emb(cw_idxs, cw_char_idx)         # (batch_size, c_len, hidden_size)
         q_emb = self.emb(qw_idxs, qw_char_idxs)         # (batch_size, q_len, hidden_size)
 
-        c_emb = self.pe_p(c_emb)
-        q_emb = self.pe_p(q_emb)
-
-        c_enc = self.enc_trans(c_emb, c_mask)    # (batch_size, c_len, 2 * hidden_size)
-        q_enc = self.enc_trans(q_emb, q_mask)    # (batch_size, q_len, 2 * hidden_size)
-
-        att = self.att(c_enc, q_enc,
+        att = self.att(c_emb, q_emb,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
-        out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
+        mod2 = self.pe_p(mod)
+
+        mod2 = self.enc_trans(mod2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
+
+        mod2 = self.highway(mod2)
+
+        out = self.out(att, mod + mod2, c_mask)  # 2 tensors, each (batch_size, c_len)
 
         return out
