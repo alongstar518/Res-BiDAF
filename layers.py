@@ -177,6 +177,7 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, x, mask):
         l_q = x.size(1)
+        emb_size = x.size(-1)
         if mask is not None:
             mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
         else:
@@ -184,7 +185,7 @@ class TransformerEncoder(nn.Module):
         for cell in self.transformer_cells:
             x = cell(x, None)
         if mask is not None:
-            mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
+            mask = mask.float().unsqueeze(-1).expand(-1, -1, emb_size)
             x *= mask
         return x
 
