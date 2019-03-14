@@ -122,107 +122,17 @@ class Highway(nn.Module):
 
 
 class TransformerEncoderCell(nn.Module):
-    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, dropoutrate = 0.1):
+    def __init__(self, input_size, num_q, num_k, num_v, num_head, hidden_size, dropoutrate = 0.1):
         super(TransformerEncoderCell, self).__init__()
-        self.self_attn = SelfAttention(input_size, num_k, num_v, num_head, dropoutrate)
+        self.self_attn = SelfAttention(input_size, num_q,num_k, num_v, num_head, dropoutrate)
         self.feed_forward = FeedForward(input_size, hidden_size, input_size)
         self.layer_norm = nn.LayerNorm(input_size)
 
-    def forward(self, x, softmax_mask):
-        z = self.self_attn(x, softmax_mask)
+    def forward(self, x, mask):
+        z = self.self_attn(x, mask)
         z = self.layer_norm(x + z)
         x = self.feed_forward(z)
         x = self.layer_norm(x + z)
-        return x
-
-
-class PositionalEncoder(nn.Module):
-    def __init__(self, d_model, max_seq_len=80):
-        super().__init__()
-        self.d_model = d_model
-
-        # create constant 'pe' matrix with values dependant on
-        # pos and i
-        pe = torch.zeros(max_seq_len, d_model)
-        for pos in range(max_seq_len):
-            for i in range(0, d_model, 2):
-                pe[pos, i] = \
-                    math.sin(pos / (10000 ** ((2 * i) / d_model)))
-                pe[pos, i + 1] = \
-                    math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
-
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        # make embeddings relatively larger
-        x = x * math.sqrt(self.d_model)
-        # add constant to embedding
-        seq_len = x.size(1)
-        x = x + torch.autograd.Variable(self.pe[:, :seq_len], \
-                         requires_grad=False).to(x.device)
-        return x
-
-class TransformerEncoder(nn.Module):
-    def __init__(self, input_size, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
-        super(TransformerEncoder, self).__init__()
-        self.transformer_cells = nn.ModuleList([TransformerEncoderCell(input_size, num_k, num_v, num_head, hidden_size, dropoutrate)
-                                  for _ in range(num_layer)])
-
-    def forward(self, x, mask):
-        l_q = x.size(1)
-        if mask is not None:
-            attn_mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
-        else:
-            attn_mask = None
-        for cell in self.transformer_cells:
-            x = cell(x, attn_mask)
-        if mask is not None:
-            mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
-            x *= mask
-        return x
-
-class SelfAttention(nn.Module):
-    def __init__(self, input_size,num_k, num_v,num_head, dropoutrate):
-        '''
-        SelfAttention layer initilization.
-        :param input_size: scalar,  embedding size.
-        :param out_size: scalar, final output size
-        :param num_k: scalar, k size
-        :param num_v:  scalar, v size
-        :param dropout: dropout rate, scalar
-        '''
-        super(SelfAttention,self).__init__()
-        self.num_k = num_k
-        self.num_v = num_v
-        self.input_size = input_size
-        self.num_head = num_head
-
-        self.linear_q = nn.Linear(input_size, num_head * num_k, bias=False)
-        self.linear_k = nn. Linear(input_size, num_head * num_k, bias=False)
-        self.linear_v = nn.Linear(input_size, num_head * num_v, bias=False)
-        self.temperature = math.sqrt(num_k)
-        self.softmax = nn.Softmax(dim = 2)
-        self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
-        self.dropout = nn.Dropout(p=dropoutrate)
-
-    def forward(self, x, softmax_mask):
-        '''
-        forward for self attention
-        :param x: input embeddings (batch, passage_length, embeddingsize)
-        :return: attn: (batch, passage_length, embeddingsize)
-        '''
-        q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
-        k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
-        v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
-
-        x = torch.bmm(q,k.transpose(1,2)) / self.temperature
-        if softmax_mask is not None:
-            x = x.data.masked_fill_(softmax_mask.byte(), -float('inf'))
-        x = self.softmax(x)
-        x = self.dropout(x)
-        x = torch.bmm(x, v)
-        x = self.fc(x)
         return x
 
 class FeedForward(nn.Module):
@@ -236,6 +146,109 @@ class FeedForward(nn.Module):
         out = F.relu(out)
         out = self.fc2(out)
         return out
+
+class PositionalEncoder(nn.Module):
+    def __init__(self, d_model, max_seq_len=80):
+        super().__init__()
+        self.d_model = d_model
+
+        # create constant 'pe' matrix with values dependant on
+        # pos and i
+        pe = torch.zeros(max_seq_len, d_model)
+        for pos in range(max_seq_len):
+            for i in range(0, d_model, 2):
+                pe[pos, i] = math.sin(pos / (10000 ** ((2 * i) / d_model)))
+                pe[pos, i + 1] = math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
+
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        # make embeddings relatively larger
+        x = x * math.sqrt(self.d_model)
+        # add constant to embedding
+        seq_len = x.size(1)
+        x = x + torch.autograd.Variable(self.pe[:, :seq_len], requires_grad=False).to(x.device)
+        return x
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, input_size, num_q, num_k, num_v, num_head, hidden_size, num_layer=6, dropoutrate = 0.1):
+        super(TransformerEncoder, self).__init__()
+        self.transformer_cells = nn.ModuleList([TransformerEncoderCell(input_size, num_q, num_k, num_v, num_head, hidden_size, dropoutrate)
+                                  for _ in range(num_layer)])
+
+    def forward(self, x, mask):
+        l_q = x.size(1)
+        if mask is not None:
+            mask = (1-mask).unsqueeze(1).expand(-1, l_q, -1)
+        else:
+            mask = None
+        for cell in self.transformer_cells:
+            x = cell(x, None)
+        if mask is not None:
+            mask = mask.float().unsqueeze(-1).expand(-1, -1, x.size(-1))
+            x *= mask
+        return x
+
+class SelfAttention(nn.Module):
+    def __init__(self, input_size,num_q, num_k, num_v,num_head, dropoutrate):
+        '''
+        SelfAttention layer initilization.
+        :param input_size: scalar,  embedding size.
+        :param out_size: scalar, final output size
+        :param num_k: scalar, k size
+        :param num_v:  scalar, v size
+        :param dropout: dropout rate, scalar
+        '''
+        super(SelfAttention,self).__init__()
+        self.num_q = num_q
+        self.num_k = num_k
+        self.num_v = num_v
+        self.input_size = input_size
+        self.num_head = num_head
+
+        self.linear_q = nn.Linear(input_size, num_head * num_k, bias=False)
+        self.linear_k = nn. Linear(input_size, num_head * num_k, bias=False)
+        self.linear_v = nn.Linear(input_size, num_head * num_v, bias=False)
+        self.temperature = math.sqrt(num_k)
+        self.softmax = nn.Softmax(dim = 2)
+        self.fc = nn.Linear(num_head * num_v,input_size, bias=False)
+        self.dropout = nn.Dropout(p=dropoutrate)
+        self.layer_norm = nn.LayerNorm(input_size)
+
+    def forward(self, x, mask):
+        '''
+        forward for self attention
+        :param x: input embeddings (batch, passage_length, embeddingsize)
+        :return: attn: (batch, passage_length, embeddingsize)
+        '''
+        res = x
+        q = self.linear_q(x) # (batch, passage_length, num_head * num_k)
+        k = self.linear_k(x) # (batch, passage_length, num_head * num_k)
+        v = self.linear_v(x) # (batch, passage_length, num_head * num_v)
+        batch, l , _ = x.size()
+
+        q = q.view(batch, l, self.num_head, self.num_q)
+        k = k.view(batch, l, self.num_head, self.num_k)
+        v = v.view(batch, l, self.num_head, self.num_v)
+
+        q = q.permute(2, 0, 1, 3).contiguous().view(-1, l, self.num_k)
+        k = k.permute(2, 0, 1, 3).contiguous().view(-1, l, self.num_k)
+        v = v.permute(2, 0, 1, 3).contiguous().view(-1, l, self.num_v)
+
+        x = torch.bmm(q,k.transpose(1,2)) / self.temperature
+        if mask is not None:
+            x = x.data.masked_fill_(mask.byte(), -float('inf'))
+
+        x = self.softmax(x)
+        x = self.dropout(x)
+        x = torch.bmm(x, v)
+
+        x = x.view(self.num_head, batch, l, self.num_v)
+        x = x.permute(1, 2, 0, 3).contiguous().view(batch, l, -1)
+        x = self.fc(x)
+        x = self.dropout(x)
+        return x
 
 class RNNEncoder(nn.Module):
     """General-purpose layer for encoding a sequence using a bidirectional RNN.
