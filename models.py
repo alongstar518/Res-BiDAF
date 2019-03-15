@@ -65,8 +65,7 @@ class BiDAF(nn.Module):
 
         self.highway = layers.Highway(1, hidden_size)
 
-        self.pe_p = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_p_length)
-        self.pe_q = layers.PositionalEncoder(word_vectors.size(-1)+100, max_seq_len=max_q_length)
+        self.pe_p = layers.PositionalEncoder(4 * (word_vectors.size(-1)+100), max_seq_len=max_p_length)
 
         self.relu = nn.ReLU()
 
