@@ -75,7 +75,7 @@ class BiDAF(nn.Module):
         att2 = self.att2(c_enc, q_enc,
                         c_mask, q_mask)
 
-        att = att1 + self.highway(att2)
+        att = self.highway(att1 + att2)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
