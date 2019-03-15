@@ -37,7 +37,7 @@ class BiDAF(nn.Module):
                                     kernel_size=5,
                                     drop_prob=drop_prob)
 
-        self.enc_trans = layers.TransformerEncoder(input_size=4 *(word_vectors.size(-1) + 100),
+        self.enc_trans = layers.TransformerEncoder(input_size=4 * (word_vectors.size(-1) + 100),
                                                    num_q= 64,
                                                    num_k= 64,
                                                    num_v= 64,
@@ -51,12 +51,12 @@ class BiDAF(nn.Module):
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-
-        self.enc_trans_rnn = layers.RNNEncoder(input_size=2 * hidden_size,
+        '''
+        self.enc_trans_rnn = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)
-
+        '''
 
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
@@ -71,7 +71,7 @@ class BiDAF(nn.Module):
 
         self.highway = layers.Highway(1, hidden_size)
 
-        self.pe_p = layers.PositionalEncoder(4 * (word_vectors.size(-1)+100), max_seq_len=max_p_length)
+        self.pe_p = layers.PositionalEncoder(4 *(word_vectors.size(-1)+100), max_seq_len=max_p_length)
 
         self.relu = nn.ReLU()
 
@@ -91,9 +91,9 @@ class BiDAF(nn.Module):
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
-        att2 = self.enc_trans_rnn(att)
+        #att2 = self.enc_trans_rnn(att, c_len)
 
-        att2 = self.pe_p(att2)
+        att2 = self.pe_p(att)
 
         att2 = self.enc_trans(att2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
 
