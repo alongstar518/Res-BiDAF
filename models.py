@@ -97,6 +97,8 @@ class BiDAF(nn.Module):
 
         att2 = self.enc_trans(att2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
 
+        att2 = self.highway(att2)
+
         att = att + att2
 
         att = self.relu(att)
