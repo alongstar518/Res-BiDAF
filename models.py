@@ -69,6 +69,8 @@ class BiDAF(nn.Module):
 
         self.relu = nn.ReLU()
 
+        self.dropout = nn.Dropout(drop_prob)
+
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
@@ -86,7 +88,9 @@ class BiDAF(nn.Module):
 
         att = att + att2
 
-        self.relu(att)
+        att = self.relu(att)
+
+        att = self.dropout(att)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
