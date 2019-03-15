@@ -52,6 +52,12 @@ class BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
+        self.enc_trans_rnn = layers.RNNEncoder(input_size=2 * hidden_size,
+                                     hidden_size=hidden_size,
+                                     num_layers=1,
+                                     drop_prob=drop_prob)
+
+
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
@@ -79,10 +85,15 @@ class BiDAF(nn.Module):
         c_emb = self.emb(cw_idxs, cw_char_idx)         # (batch_size, c_len, hidden_size)
         q_emb = self.emb(qw_idxs, qw_char_idxs)         # (batch_size, q_len, hidden_size)
 
-        att = self.att(c_emb, q_emb,
+        c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
+        q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
+
+        att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
-        att2 = self.pe_p(att)
+        att2 = self.enc_trans_rnn(att)
+
+        att2 = self.pe_p(att2)
 
         att2 = self.enc_trans(att2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
 
