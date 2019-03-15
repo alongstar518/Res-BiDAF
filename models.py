@@ -57,6 +57,8 @@ class BiDAF(nn.Module):
                                       drop_prob=drop_prob)
 
         self.highway = layers.Highway(1, 2 *hidden_size)
+        self.relu = nn.ReLU()
+        self.drop_out = nn.Dropout(drop_prob)
 
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
@@ -75,7 +77,11 @@ class BiDAF(nn.Module):
         att2 = self.att2(c_enc, q_enc,
                         c_mask, q_mask)
 
-        att = self.highway(att1 + att2)
+        #att = self.highway(att1 + att2)
+
+        att = self.relu(att1 + att2)
+
+        att = self.drop_out(att)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
