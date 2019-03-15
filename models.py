@@ -69,7 +69,7 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-        self.highway = layers.Highway(1, hidden_size)
+        self.highway = layers.Highway(1, 4 * hidden_size)
 
         self.pe_p = layers.PositionalEncoder(4 *(word_vectors.size(-1)+100), max_seq_len=max_p_length)
 
