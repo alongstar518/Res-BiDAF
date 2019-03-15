@@ -37,7 +37,7 @@ class BiDAF(nn.Module):
                                     kernel_size=5,
                                     drop_prob=drop_prob)
 
-        self.enc_trans = layers.TransformerEncoder(input_size=word_vectors.size(-1) + 100,
+        self.enc_trans = layers.TransformerEncoder(input_size=4 *(word_vectors.size(-1) + 100),
                                                    num_q= 64,
                                                    num_k= 64,
                                                    num_v= 64,
@@ -80,13 +80,15 @@ class BiDAF(nn.Module):
         att = self.att(c_emb, q_emb,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
+        att2 = self.pe_p(att)
+
+        att2 = self.enc_trans(att2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
+
+        att = att + att2
+
+        self.relu(att)
+
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
-
-        mod2 = self.pe_p(att)
-
-        mod2 = self.enc_trans(mod2, c_mask)    # (batch_size, c_len, 2 * hidden_size)
-
-        mod = self.highway(mod + mod2)
 
         out = self.out(att, mod, c_mask)  # 2 tensors, each (batch_size, c_len)
 
