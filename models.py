@@ -5,6 +5,7 @@
 import layers
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class BiDAF(nn.Module):
@@ -53,6 +54,9 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
+        self.linear1 = nn.Linear(8 * hidden_size, 2 * hidden_size)
+        self.linear2 = nn.Linear(8*hidden_size, 8 * hidden_size)
+
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
@@ -66,6 +70,12 @@ class BiDAF(nn.Module):
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+
+        att1 = F.relu(self.linear1(att))
+
+        att2 = self.att(att1, q_enc, c_mask, q_mask)
+
+        att = att + F.relu(att2)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
