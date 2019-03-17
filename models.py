@@ -5,6 +5,7 @@
 import layers
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class BiDAF(nn.Module):
@@ -42,8 +43,19 @@ class BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
+        self.enc_att = layers.RNNEncoder(input_size=8 * hidden_size,
+                                     hidden_size=hidden_size,
+                                     num_layers=1,
+                                     drop_prob=drop_prob)
+
+
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
+
+        self.att2 = layers.BiDAFAttention(hidden_size=2 * hidden_size,
+                                         drop_prob=drop_prob)
+
+        self.gate = nn.Linear(8 * hidden_size, 8 * hidden_size)
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
@@ -66,6 +78,12 @@ class BiDAF(nn.Module):
 
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+
+        att2 = self.enc_att(att, c_len)
+
+        att2 = self.att2(att2, att2, c_mask, c_mask)
+
+        att = att + F.relu(self.gate(att2))
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
