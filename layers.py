@@ -16,7 +16,7 @@ class CharEmbedding(nn.Module):
         self.embedding = nn.Embedding(char_vocab_size, char_embedding_size, padding_idx=0)
         self.char_embedding_size = char_embedding_size
         self.word_embedding_size = word_embedding_size
-        self.cov1d_layer = nn.Conv1d(in_channels=self.char_embedding_size, out_channels=self.char_embedding_size, kernel_size=kernel_size, bias=True)
+        self.cov1d_layer = nn.Conv1d(in_channels=self.char_embedding_size, out_channels=self.word_embedding_size, kernel_size=kernel_size, bias=True)
         #self.drop_out = nn.Dropout(drop_prob)
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class CharEmbedding(nn.Module):
         conv = self.cov1d_layer(x)
         relu = F.relu(conv)
         out = torch.max(relu, dim=2)[0]
-        out = out.contiguous().view(batch_size, max_sent_lenth, self.char_embedding_size)
+        out = out.contiguous().view(batch_size, max_sent_lenth, self.word_embedding_size)
         return out
 
 class Embedding(nn.Module):
