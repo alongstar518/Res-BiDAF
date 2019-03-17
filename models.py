@@ -57,6 +57,8 @@ class BiDAF(nn.Module):
         self.linear1 = nn.Linear(8 * hidden_size, 2 * hidden_size)
         self.linear2 = nn.Linear(8*hidden_size, 8 * hidden_size)
 
+        self.dropout = nn.Dropout(drop_prob)
+
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
@@ -76,6 +78,8 @@ class BiDAF(nn.Module):
         att2 = self.att(att1, q_enc, c_mask, q_mask)
 
         att = att + F.relu(att2)
+
+        att = self.dropout(att)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
