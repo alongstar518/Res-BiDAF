@@ -34,7 +34,6 @@ class BiDAF(nn.Module):
                                     hidden_size=hidden_size,
                                     char_vocab_size=char_vocab_size,
                                     char_embedding_size=100,
-                                    word_embedding_size=300,
                                     kernel_size=5,
                                     drop_prob=drop_prob)
 
