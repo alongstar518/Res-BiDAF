@@ -64,7 +64,7 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-        self.drop_out = nn.Dropout()
+        self.drop_out = nn.Dropout(drop_prob)
 
     def forward(self, cw_idxs, qw_idxs, cw_char_idx, qw_char_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
