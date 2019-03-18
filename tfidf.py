@@ -312,5 +312,11 @@ def TFIDF_test():
     scorer.prepare_data(include_tf=True)
     print(scorer.get_tfidf_normalized_additive_ignore_common("Hello how are human?", "Fred is a human fool!"))
 
+def TFIDF_load_test():
+    scorer = TFIDF([])
+    scorer.get_from_pickle()
+    print(scorer.get_tfidf_normalized_additive_ignore_common("Hello how are human?", "Fred is a human fool!"))
+
 if __name__ == '__main__':
     TFIDF_test()
+    TFIDF_load_test()

@@ -71,6 +71,7 @@ def download(args):
 
 def word_tokenize(sent):
     doc = nlp(sent)
+    tfidf_docs.append(sent)
     return [token.text for token in doc]
 
 
@@ -386,6 +387,8 @@ if __name__ == '__main__':
     # Import spacy language model
     nlp = spacy.blank("en")
 
+    tfidf_docs = []
+
     # Preprocess dataset
     args_.train_file = url_to_data_path(args_.train_url)
     args_.dev_file = url_to_data_path(args_.dev_url)
@@ -395,3 +398,9 @@ if __name__ == '__main__':
     glove_ext = '.txt' if glove_dir.endswith('d') else '.{}d.txt'.format(args_.glove_dim)
     args_.glove_file = os.path.join(glove_dir, os.path.basename(glove_dir) + glove_ext)
     pre_process(args_)
+
+    from tfidf import TFIDF
+    print (len(tfidf_docs))
+    tfidf_scorer = TFIDF(tfidf_docs)
+    tfidf_scorer.prepare_data()
+    tfidf_scorer.save_to_pickle()
