@@ -28,7 +28,7 @@ class BiDAF(nn.Module):
         hidden_size (int): Number of features in the hidden state at each layer.
         drop_prob (float): Dropout probability.
     """
-    def __init__(self, word_vectors, hidden_size, char_vocab_size, drop_prob=0.):
+    def __init__(self, word_vectors, hidden_size, char_vocab_size, drop_prob=0., bidaf_layers = 4):
         super(BiDAF, self).__init__()
         self.emb = layers.Embedding(word_vectors=word_vectors,
                                     hidden_size=hidden_size,
@@ -43,19 +43,18 @@ class BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
-        self.enc_att = layers.RNNEncoder(input_size=8 * hidden_size,
-                                     hidden_size=hidden_size,
-                                     num_layers=1,
-                                     drop_prob=drop_prob)
-
-
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
-        self.att2 = layers.BiDAFAttention(hidden_size=2 * hidden_size,
-                                         drop_prob=drop_prob)
+        self.encs_att = nn.ModuleList([layers.RNNEncoder(input_size=8 * hidden_size,
+                                     hidden_size=hidden_size,
+                                     num_layers=1,
+                                     drop_prob=drop_prob) for _ in range(bidaf_layers)])
 
-        self.gate = nn.Linear(8 * hidden_size, 8 * hidden_size)
+        self.atts = nn.ModuleList([layers.BiDAFAttention(hidden_size=2 * hidden_size,
+                                         drop_prob=drop_prob) for _ in range(bidaf_layers)])
+
+        self.gates = nn.ModuleList([nn.Linear(8 * hidden_size, 8 * hidden_size) for _ in range(bidaf_layers)])
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
@@ -79,11 +78,13 @@ class BiDAF(nn.Module):
         att = self.att(c_enc, q_enc,
                        c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
 
-        att2 = self.enc_att(att, c_len)
+        for enc_att, att_func, gate in zip(self.encs_att, self.atts, self.gates):
 
-        att2 = self.att2(att2, att2, c_mask, c_mask)
+            att2 = enc_att(att, c_len)
 
-        att = att + F.relu(self.gate(att2))
+            att2 = att_func(att2, att2, c_mask, c_mask)
+
+            att = att + F.relu(gate(att2))
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
