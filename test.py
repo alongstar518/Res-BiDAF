@@ -107,21 +107,19 @@ def main(args):
 
     if (args.use_tfidf):
         # Apply TF-IDF filtering to pred_dict
-        tf_idf_enabled = False
-        tf_idf_threshold = 1.9
+        tf_idf_threshold = 2
         tf_idf_common_threshold = 1
-        if tf_idf_enabled:
-            for key, value in pred_dict.items():
-                if value != "":
-                    tf_idf_score = scorer.normalized_additive_idf_ignore_common_words(
-                        value, threshold_frequency=tf_idf_common_threshold)
-                    if tf_idf_score < tf_idf_threshold:
-                        pred_dict[key] = ''
-                        pass
-                        # print ("pred_dict: {}, pruned".format(tf_idf_score))
-                    else:
-                        pass
-                        # print ("pred_dict: {}, kept".format(tf_idf_score))
+        for key, value in pred_dict.items():
+            if value != "":
+                tf_idf_score = scorer.normalized_additive_idf_ignore_common_words(
+                    value, threshold_frequency=tf_idf_common_threshold)
+                if tf_idf_score < tf_idf_threshold:
+                    pred_dict[key] = ''
+                    pass
+                    # print ("pred_dict: {}, pruned".format(tf_idf_score))
+                else:
+                    pass
+                    # print ("pred_dict: {}, kept".format(tf_idf_score))
 
     # Log results (except for test set, since it does not come with labels)
     if args.split != 'test':
