@@ -53,6 +53,12 @@ class BiDAF(nn.Module):
                                      num_layers=1,
                                      drop_prob=drop_prob)
 
+        self.enc_att4 = layers.RNNEncoder(input_size=8 * hidden_size,
+                                     hidden_size=hidden_size,
+                                     num_layers=1,
+                                     drop_prob=drop_prob)
+
+
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
@@ -62,8 +68,13 @@ class BiDAF(nn.Module):
         self.att3 = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
 
+        self.att4 = layers.BiDAFAttention(hidden_size=2 * hidden_size,
+                                         drop_prob=drop_prob)
+
+
         self.gate = nn.Linear(8 * hidden_size, 8 * hidden_size)
         self.gate3 = nn.Linear(8 * hidden_size, 8 * hidden_size)
+        self.gate4 = nn.Linear(8 * hidden_size, 8 * hidden_size)
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
@@ -98,6 +109,12 @@ class BiDAF(nn.Module):
         att3 = self.att3(att3, att3, c_mask, c_mask)
 
         att = att + F.relu(self.gate3(att3))
+
+        att4 = self.enc_att4(att,c_len)
+
+        att4 = self.att4(att4, att4, c_mask, c_mask)
+
+        att = att + F.relu(self.gate4(att4))
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
