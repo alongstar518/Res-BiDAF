@@ -164,6 +164,10 @@ def get_test_args():
                         type=str,
                         default='submission.csv',
                         help='Name for submission file.')
+    parser.add_argument('--use_tfidf',
+                        type=bool,
+                        default=False,
+                        help='Whether to use TF-IDF for post-prediction filtering or not.')
 
     # Require load_path for test.py
     args = parser.parse_args()

@@ -26,8 +26,13 @@ from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, SQuAD
 
+from tfidf import TFIDF
 
 def main(args):
+    # Load TF-IDF from pickle
+    scorer = TFIDF([])
+    scorer.get_from_pickle()
+
     # Set up logging
     args.save_dir = util.get_save_dir(args.save_dir, args.name, training=False)
     log = util.get_logger(args.save_dir, args.name)
@@ -100,8 +105,24 @@ def main(args):
             pred_dict.update(idx2pred)
             sub_dict.update(uuid2pred)
 
-    # Log results (except for test set, since it does not come with labels)
-    if args.split != 'test':
+        if (args.use_tfidf):
+            # Apply TF-IDF filtering to pred_dict
+            tf_idf_enabled = False
+            tf_idf_threshold = 1.9
+            tf_idf_common_threshold = 1
+            if tf_idf_enabled:
+                for key, value in pred_dict.items():
+                    if value != "":
+                        tf_idf_score = scorer.normalized_additive_idf_ignore_common_words(
+                            value, threshold_frequency=tf_idf_common_threshold)
+                        if tf_idf_score < tf_idf_threshold:
+                            pred_dict[key] = ''
+                            # print ("pred_dict: {}, pruned".format(tf_idf_score))
+                        else:
+                            # print ("pred_dict: {}, kept".format(tf_idf_score))
+
+        # Log results (except for test set, since it does not come with labels)
+        if args.split != 'test':
         results = util.eval_dicts(gold_dict, pred_dict, args.use_squad_v2)
         results_list = [('NLL', nll_meter.avg),
                         ('F1', results['F1']),
