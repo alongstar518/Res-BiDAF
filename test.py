@@ -117,8 +117,10 @@ def main(args):
                         value, threshold_frequency=tf_idf_common_threshold)
                     if tf_idf_score < tf_idf_threshold:
                         pred_dict[key] = ''
+                        pass
                         # print ("pred_dict: {}, pruned".format(tf_idf_score))
                     else:
+                        pass
                         # print ("pred_dict: {}, kept".format(tf_idf_score))
 
     # Log results (except for test set, since it does not come with labels)
