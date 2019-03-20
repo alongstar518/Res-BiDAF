@@ -33,12 +33,12 @@ class BiDAF(nn.Module):
         self.emb = layers.Embedding(word_vectors=word_vectors,
                                     hidden_size=hidden_size,
                                     char_vocab_size=char_vocab_size,
-                                    char_embedding_size=100,
+                                    char_embedding_size=200,
                                     word_embedding_size=300,
                                     kernel_size=5,
                                     drop_prob=drop_prob)
 
-        self.enc = layers.RNNEncoder(input_size=2 * hidden_size,
+        self.enc = layers.RNNEncoder(input_size=2 * hidden_size+100,
                                      hidden_size=hidden_size,
                                      num_layers=1,
                                      drop_prob=drop_prob)

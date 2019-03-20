@@ -80,9 +80,9 @@ class HighwayEncoder(nn.Module):
     """
     def __init__(self, num_layers, hidden_size):
         super(HighwayEncoder, self).__init__()
-        self.transforms = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+        self.transforms = nn.ModuleList([nn.Linear(hidden_size * 2+100, hidden_size * 2+100)
                                          for _ in range(num_layers)])
-        self.gates = nn.ModuleList([nn.Linear(hidden_size * 2, hidden_size * 2)
+        self.gates = nn.ModuleList([nn.Linear(hidden_size * 2+100, hidden_size * 2+100)
                                     for _ in range(num_layers)])
 
     def forward(self, x_c, x_w):
